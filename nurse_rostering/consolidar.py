@@ -36,6 +36,8 @@ def carregar():
     v2 = pd.concat([pd.read_csv(f) for f in sorted(glob.glob("v2_*.csv"))], ignore_index=True)
     v2.to_csv("resultados_v2.csv", index=False)
     assert v2.viavel.all(), "ha execucao inviavel"
+    dup = v2.duplicated(["instancia", "metodo", "semente"])
+    assert not dup.any(), f"execucoes repetidas (mesma instancia, metodo e semente): {v2[dup].values.tolist()}"
     v2["inst"] = v2.instancia.map(curto)
     hig = pd.concat([pd.read_csv(f"final_{k}.csv") for k in range(1, 5)], ignore_index=True)
     hig = hig[hig.metodo == "exato"].assign(inst=lambda d: d.instancia.map(curto)).set_index("inst")
@@ -43,6 +45,7 @@ def carregar():
     gur = gur.assign(inst=gur.instancia.map(curto)).set_index("inst")
     lit = v2.groupby("inst")[["enfermeiros", "semanas", "lb_literatura", "ub_literatura"]].first()
     agg = v2.groupby(["inst", "metodo"]).agg(medio=("custo", "mean"), melhor=("custo", "min"),
+                                             dp=("custo", "std"), n=("semente", "nunique"),
                                              it=("iteracoes", "mean")).unstack()
     t = pd.DataFrame(index=ORDEM)
     t["N"] = lit.enfermeiros; t["sem"] = lit.semanas
@@ -52,6 +55,8 @@ def carregar():
     t["highs"] = hig.custo; t["highs_lb"] = hig.limite_inferior
     for m in ["grasp", "sa", "lns"]:
         t[f"{m}_medio"] = agg[("medio", m)]; t[f"{m}_melhor"] = agg[("melhor", m)]; t[f"{m}_it"] = agg[("it", m)]
+        t[f"{m}_dp"] = agg[("dp", m)].round(1)
+    t["n_sem"] = int(agg["n"].min().min())              # sementes por (instancia, metodo); o minimo, por seguranca
     for m in ["gurobi", "highs", "grasp_medio", "sa_medio", "lns_medio", "grasp_melhor", "sa_melhor", "lns_melhor"]:
         t[f"dev_{m}"] = (100 * (t[m] - t.ub_lit) / t.ub_lit).round(1)
     t.index.name = "instancia"

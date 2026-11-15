@@ -267,7 +267,7 @@ texto(sl, Cm(1.5), Cm(3.4), Cm(15.5), Cm(13), [
     ("Representação: matriz enfermeiro × dia", {"bullet": True}),
     ("H1, H4 garantidas; H2, H3 com penalidade 10.000", {"bullet": True}),
     ("Avaliação incremental: recalcula só os enfermeiros afetados (μs por movimento)", {"bullet": True, "negrito": True}),
-    ("Custo sempre conferido pelo avaliador oficial", {"bullet": True}),
+    ("Custo das heurísticas conferido pelo avaliador oficial", {"bullet": True}),
 ], tam=20)
 tabela(sl, Cm(17.5), Cm(3.6), Cm(15), [["Vizinhança", "Movimento"],
        ["N1 troca", "muda a atribuição de 1 enfermeiro em 1 dia"],
@@ -332,7 +332,7 @@ for i, r in T.iterrows():
     vals = {"Gurobi": r.gurobi, "GRASP": r.grasp_medio, "SA": r.sa_medio, "LNS": r.lns_medio}
     melhor_metodo[i] = min(vals, key=vals.get)
 sl = slide("Comparação: mesmo tempo (300 s), mesma máquina", secao="Resultados", notas=(
-    "(~1 min 30 s) Esta é a tabela principal. Custo médio de 2 sementes para as heurísticas, 300 segundos, mesma "
+    "(~1 min 30 s) Esta é a tabela principal. Custo médio de " + str(int(T.n_sem.min())) + " sementes para as heurísticas, 300 segundos, mesma "
     "máquina. Em verde, o melhor de cada linha. " +
     "; ".join(f"{i}: melhor = {m}" for i, m in melhor_metodo.items()) + ". "
     "A leitura geral: o Gurobi só compete nas instâncias pequenas de 4 semanas; nas de 8 semanas as heurísticas são "
@@ -348,7 +348,7 @@ vit = pd.Series(melhor_metodo).value_counts()
 texto(sl, Cm(21), Cm(3.4), Cm(11.8), Cm(13.5), [
     ("Melhor método por instância", {"negrito": True, "cor": AZUL}),
 ] + [(f"{m}: {n} de 8", {"bullet": True}) for m, n in vit.items()] + [
-    ("Custo médio de 2 sementes; todas as escalas viáveis", {"tam": 14, "cor": CINZA}),
+    (f"Custo médio de {int(T.n_sem.min())} sementes; todas as escalas viáveis", {"tam": 14, "cor": CINZA}),
     ("Distância média ao melhor publicado:", {"tam": 16, "negrito": True}),
     (f"Gurobi +{fmt(T.dev_gurobi.mean(), 0)}% · GRASP +{fmt(T.dev_grasp_medio.mean(), 0)}% · "
      f"SA +{fmt(T.dev_sa_medio.mean(), 0)}% · LNS +{fmt(T.dev_lns_medio.mean(), 0)}%", {"tam": 16}),

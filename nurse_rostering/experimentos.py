@@ -60,7 +60,8 @@ def main():
     ap.add_argument("--instancias", help="arquivo com a lista de instancias (opcional)")
     ap.add_argument("--metodos", default="exato,grasp,lns")
     ap.add_argument("--tempo", type=float, default=60, help="limite de tempo por execucao (s)")
-    ap.add_argument("--sementes", type=int, default=1, help="execucoes com sementes diferentes (GRASP e LNS)")
+    ap.add_argument("--sementes", type=int, default=1, help="execucoes com sementes diferentes (GRASP, SA e LNS)")
+    ap.add_argument("--semente-inicial", type=int, default=1, help="primeira semente (as seguintes sao consecutivas)")
     ap.add_argument("--threads", type=int, default=1, help="threads do solver")
     ap.add_argument("--alpha", type=float, default=0.15, help="alpha da RCL do GRASP")
     ap.add_argument("--saida", default="resultados.csv")
@@ -83,7 +84,7 @@ def main():
         inst = load_instance(base, h, wd)
         custo_ref = evaluate(inst, load_solution_dir(inst, ref))[2] if ref else ""
         for metodo in metodos:
-            sementes = [0] if metodo == "exato" else range(1, a.sementes + 1)
+            sementes = [0] if metodo == "exato" else range(a.semente_inicial, a.semente_inicial + a.sementes)
             for sem in sementes:
                 print(f"\n== {inst.name}  {metodo}  semente={sem}", flush=True)
                 lb = gap = it = ""

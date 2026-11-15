@@ -155,6 +155,8 @@
 <p class="a">Uma heurística que usa um método exato (solver de PLI) como componente. No nosso LNS, a heurística escolhe <i>qual pedaço</i> otimizar e o solver otimiza aquele pedaço de forma exata.</p>
 <p class="q">Qual a diferença entre GRASP, ILS e SA para escapar de ótimos locais?</p>
 <p class="a">O GRASP recomeça de uma nova construção (diversificação por reinício); o ILS perturba a solução atual e refaz a busca local (diversificação local); o SA aceita pioras com probabilidade controlada pela temperatura (diversificação contínua, que diminui com o tempo).</p>
+<p class="q">Por que não deram mais tempo às heurísticas?</p>
+<p class="a">Para comparar com o Gurobi no mesmo tempo (300 s). Mas os dados mostram que o SA e a LNS ainda estavam melhorando no fim (melhor escala achada, em média, aos 291 s e 288 s) e que, nas instâncias de 8 semanas, o SA leva de 90 a 160 s só para eliminar as violações rígidas. Com mais tempo, ou com uma construção inicial melhor, os resultados melhorariam.</p>
 <p class="q">O que fariam com mais tempo?</p>
 <p class="a">Rodar mais sementes e todas as 40 instâncias da literatura; testar o Gurobi com mais threads e mais tempo; reforçar o modelo (cortes e quebra de simetria); combinar SA e LNS (usar o SA como solução inicial do LNS); e testar uma formulação por geração de colunas.</p>
 <p class="q">Isso seria usado num hospital real?</p>

@@ -16,6 +16,11 @@ Contexto completo do projeto, para qualquer sessão do Claude (Claude Code no VS
 3. **Etapa 3, apresentação dos dados:** apresentar os dados disponíveis para o problema e uma breve explicação deles. PDF, no máximo 2 páginas.
 4. **Etapa 4, proposta de solução:** explicar como o problema será resolvido, com a formulação do problema para obter a solução ótima e a descrição da metaheurística escolhida. PDF, no máximo 4 páginas.
 5. **Etapa 5, implementação:** resultados do método exato (modelo AMPL). A entrega é uma tabela com os resultados do método exato, mostrando a qualidade da solução e o tempo gasto em cada instância. PDF, no máximo 2 páginas.
+6. **Etapa 6, implementação:** resultados do método aproximado (metaheurística). Tabela comparando os métodos exato e aproximado nos mesmos exemplares, com qualidade da solução e tempo gasto por método. PDF, no máximo 2 páginas.
+7. **Etapa 7, apresentação:** apresentar o artigo como num simpósio, no máximo 15 minutos.
+8. **Etapa 8, artigo:** formatação do SBPO-2021, PDF, no máximo 12 páginas.
+
+Todas as entregas precisam de referências reais e conhecidas, citadas no texto e listadas no final. (Revisão de 15/11/2026: números conferidos contra os CSVs, citações × referências conferidas nos dois sentidos, limites de páginas ok.)
 
 **Formato dos PDFs** (igual às etapas já entregues): fonte Times, título centralizado em negrito, autores em itálico abaixo do título ("Eduardo Lopes - 168804, Jorge Dourado - 168900"), seções numeradas em negrito ("1. ...") e texto justificado.
 
@@ -80,7 +85,8 @@ Atribuir a cada enfermeiro, em cada dia, um turno (Early, Day, Late, Night) com 
 | `exato.py` | Mesmo `nurse.mod` via tradutor GLPK + HiGHS (sem licença) |
 | `grasp.py` | GRASP: construção dia a dia com RCL (alpha), VND com N1 troca, N2 swap, N3 bloco de um enfermeiro e N4 swap de bloco, e fase ILS (perturbação + **VND local**: após perturbar, só revisita enfermeiros/dias afetados com margem de 3 dias; alterado em 14/11/2026 com autorização, ILS 3–4× mais rápido) |
 | `sa.py` | Simulated Annealing (criado em 14/11/2026): reaproveita Estado e movimentos do GRASP; Metropolis; T cai geometricamente com o tempo, T0 = 40, Tf = 2 (calibrado só nas instâncias de teste) |
-| `consolidar.py` | Junta Gurobi + HiGHS + heurísticas v2 em `comparacao_final.csv` e gera `entregas/fonte/fig_*.png` |
+| `consolidar.py` | Junta Gurobi + HiGHS + heurísticas v2 (`v2_*.csv`, inclusive `v2_seed_*.csv`) em `comparacao_final.csv` (média, melhor, desvio-padrão, nº de sementes) e gera `entregas/fonte/fig_*.png` |
+| `rodar_sementes.py` | Sementes extras das heurísticas (padrão: 3 a 5, 300 s, 6 processos, ~60 min); retoma se interrompido; no fim regenera tabelas, figuras, PDFs e slides. Depois, revisar os textos das análises (números e "2 sementes") |
 | `custo_rapido.py` | Custo de um enfermeiro em uma passada (usado pelo GRASP) |
 | `lns.py` | Matheurística fix-and-optimize: parte do GRASP, fixa x fora de uma vizinhança (grupo de enfermeiros ou janela de dias) e o HiGHS reotimiza, com warm start e vizinhança adaptativa |
 | `experimentos.py` | Roda exato, GRASP, SA (`--metodos ...,sa`) e LNS numa lista de instâncias e grava CSV linha a linha, com colunas de gap contra a literatura |

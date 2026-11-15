@@ -76,7 +76,14 @@ esforco = {
 nomes = {"gurobi": "Exato (Gurobi)", "grasp": "GRASP-ILS", "sa": "Simulated Annealing", "lns": "LNS (matheurística)"}
 dev = {"gurobi": T.dev_gurobi.mean(), "grasp": T.dev_grasp_medio.mean(), "sa": T.dev_sa_medio.mean(),
        "lns": T.dev_lns_medio.mean()}
-linhas = [f'<tr><td class="l">{nomes[m]}</td><td>300 s</td><td>{pct(dev[m])}</td><td>{vit[m]} de 8</td>'
+import glob as _g
+_conv = {}
+for _f in _g.glob(os.path.join(NR, "v2_*_convergencia.json")):
+    _conv.update(json.load(open(_f)))
+tbest = {m: [h[-1][0] for k, h in _conv.items() if k.split("|")[1] == m] for m in ["grasp", "sa", "lns"]}
+tb = {m: f"{f(sum(v) / len(v))} s" for m, v in tbest.items()}
+tb["gurobi"] = "–"
+linhas = [f'<tr><td class="l">{nomes[m]}</td><td>300 s</td><td>{tb[m]}</td><td>{pct(dev[m])}</td><td>{vit[m]} de 8</td>'
           f'<td class="l">{esforco[m]}</td></tr>' for m in ["gurobi", "grasp", "sa", "lns"]]
 inserir("etapa6_comparacao_exato_aproximado.html", "LINHAS_RESUMO", "\n".join(linhas))
 
@@ -119,7 +126,7 @@ for k, (i, r) in enumerate(T.iterrows()):
 cp.append(f'<tr class="sep"><td class="l">Dist. média</td><td></td><td>{pct(dev["gurobi"])}</td>'
           f'<td>{pct(dev["grasp"])}</td><td></td><td>{pct(dev["sa"])}</td><td></td><td>{pct(dev["lns"])}</td><td></td></tr>')
 cp.append('</tbody></table><p class="legenda">Tabela 3. Custo das escalas com 300 s por execução (heurísticas: média '
-          'e melhor de 2 sementes). Em negrito, o melhor custo médio da instância. Dist. média: distância média '
+          f'e melhor de {int(T.n_sem.min())} sementes). Em negrito, o melhor custo médio da instância. Dist. média: distância média '
           'ao UB publicado.</p>')
 inserir("etapa8_artigo_sbpo.html", "TAB_COMP", "\n".join(cp))
 
