@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Guia de estudo - Nurse Rostering</title>
+<link rel="stylesheet" href="etapa.css">
+<style>
+  html { font-size: 11pt; }
+  h2 { font-size: 13pt; border-bottom: 0.8pt solid #000; padding-bottom: 1pt; margin-top: 14pt; }
+  .caixa { border: 0.8pt solid #444; background: #f3f3f3; padding: 5pt 8pt; margin: 6pt 0; break-inside: avoid; }
+  .caixa p { text-indent: 0; }
+  .qa p.q { font-weight: bold; text-indent: 0; margin: 7pt 0 1pt 0; }
+  .qa p.a { text-indent: 0; margin-left: 0.6cm; }
+  table.escala td { width: 1.6em; border: 0.4pt solid #999; font-size: 9pt; }
+  table.escala td.l { width: auto; }
+  .E { background: #dbe9f6; } .Dy { background: #fdf0c4; } .L { background: #f8d7c4; } .Nt { background: #d6cfe8; } .F { color: #888; }
+</style></head><body>
+
+<h1>Guia de Estudo para a Apresentação<br>Escalonamento de Enfermeiros (INRC-II): PLI, GRASP, Simulated Annealing e LNS</h1>
+<p class="autores">Eduardo Lopes - 168804, Jorge Dourado - 168900</p>
+<p class="etapa">Material interno da dupla, não é uma entrega. Objetivo: entender o projeto inteiro para apresentá-lo como num simpósio da SOBRAPO (SBPO).</p>
+
+<h2>0. Como usar este guia</h2>
+<p>Leia as seções 1 a 4 para entender <b>o problema e por que ele é difícil</b>; as seções 5 a 8 explicam <b>como resolvemos</b>; a seção 9 traz <b>os resultados e como interpretá-los</b>; as seções 10 a 12 trazem <b>perguntas prováveis, glossário e números para memorizar</b>. Não é preciso decorar código: é preciso saber explicar cada decisão com suas palavras.</p>
+<div class="caixa"><p><b>A história em 30 segundos.</b> Hospitais precisam montar a escala mensal de enfermagem respeitando cobertura mínima, regras trabalhistas e pedidos dos profissionais. Esse é o <i>Nurse Rostering Problem</i>. Usamos as instâncias oficiais da competição internacional INRC-II, com ótimos publicados na literatura. Formulamos um modelo de Programação Linear Inteira e o resolvemos com o Gurobi: ele funciona bem em instâncias pequenas e curtas, mas em 5 minutos não fecha nenhuma das instâncias reais, e em 8 semanas fica muito longe do ótimo. Por isso desenvolvemos três métodos aproximados: GRASP, <i>Simulated Annealing</i> e uma matheurística LNS que usa o próprio solver em pedaços do problema. Com o mesmo tempo e na mesma máquina, as metaheurísticas, sobretudo o SA, encontram escalas muito melhores que o solver nas instâncias maiores.</p></div>
+
+<h2>1. O problema</h2>
+<p><b>Entrada:</b> um conjunto de enfermeiros (cada um com um contrato e um conjunto de habilidades), um horizonte de 4 ou 8 semanas, a demanda mínima e a ótima de cada dia × turno × habilidade, os pedidos de folga e o histórico do período anterior.</p>
+<p><b>Decisão:</b> para cada enfermeiro e cada dia, escolher <b>folga</b> ou <b>(turno, habilidade)</b>. Turnos: <i>Early</i> (manhã), <i>Day</i> (dia), <i>Late</i> (tarde) e <i>Night</i> (noite). Habilidades: <i>HeadNurse</i> (chefe), <i>Nurse</i> (enfermeiro), <i>Caretaker</i> (cuidador) e <i>Trainee</i> (estagiário).</p>
+<p><b>Exemplo</b> de um pedaço de escala, com 4 enfermeiros em uma semana (E = Early, D = Day, L = Late, N = Night, – = folga):</p>
+<table class="escala">
+<thead><tr><th class="l">Enfermeiro</th><th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th></tr></thead>
+<tbody>
+<tr><td class="l">HN_0 (integral)</td><td class="E">E</td><td class="E">E</td><td class="E">E</td><td class="F">–</td><td class="F">–</td><td class="Dy">D</td><td class="Dy">D</td></tr>
+<tr><td class="l">NU_3 (parcial)</td><td class="F">–</td><td class="L">L</td><td class="L">L</td><td class="L">L</td><td class="F">–</td><td class="F">–</td><td class="F">–</td></tr>
+<tr><td class="l">NU_7 (integral)</td><td class="Nt">N</td><td class="Nt">N</td><td class="Nt">N</td><td class="F">–</td><td class="F">–</td><td class="E">E</td><td class="E">E</td></tr>
+<tr><td class="l">CT_2 (meio per.)</td><td class="Dy">D</td><td class="Dy">D</td><td class="F">–</td><td class="F">–</td><td class="F">–</td><td class="F">–</td><td class="F">–</td></tr>
+</tbody></table>
+<p><b>Restrições rígidas</b> (se violar, a escala é inválida): H1, no máximo um turno por dia; H2, cobertura mínima; H3, sucessões proibidas (Late → Early, Night → Early/Day/Late: o enfermeiro precisa descansar); H4, só trabalhar em funções para as quais é habilitado.</p>
+<p><b>Restrições flexíveis</b> (podem ser violadas, mas custam pontos): S1 cobertura ótima (30 por pessoa faltando); S2 mínimo/máximo de dias seguidos no mesmo turno (15 por dia) e de trabalho (30 por dia); S3 mínimo/máximo de folgas seguidas (30); S4 pedido de folga não atendido (10); S5 fim de semana incompleto (30); S6 total de turnos fora do contrato (20 por turno); S7 fins de semana trabalhados acima do máximo (30 por fim de semana).</p>
+<p><b>Objetivo:</b> minimizar a soma das penalidades. Uma escala “custo 1670” é uma escala válida cujas violações flexíveis somam 1670 pontos.</p>
+<p><b>Versão estática:</b> a competição original revelava uma semana por vez (versão dinâmica). Nós resolvemos o horizonte inteiro de uma vez, como Legrain e Omer (2023) e Ceschia et al. (2020). Por isso nossos custos se comparam com os desses artigos, não com o ranking da competição.</p>
+
+<h2>2. Por que é difícil</h2>
+<ul>
+<li><b>Explosão combinatória:</b> com 30 enfermeiros, 28 dias e cerca de 9 opções por célula (folga ou turno × habilidade), há da ordem de 9<sup>840</sup> ≈ 10<sup>800</sup> escalas possíveis. Enumerar está fora de questão.</li>
+<li><b>Acoplamento temporal:</b> mudar <i>um</i> dia de <i>um</i> enfermeiro altera suas sequências de trabalho, de folga e de turno, seu total de turnos, seus fins de semana e a cobertura daquele dia.</li>
+<li><b>NP-difícil:</b> o problema é NP-difícil (Cheang et al., 2003), então não se conhece algoritmo exato que escale polinomialmente.</li>
+<li><b>Relaxação linear fraca:</b> as restrições de sequência, linearizadas com janelas e padrões, deixam a relaxação linear (que o solver usa para o limite inferior) bem mais fraca que o ótimo real. Isso faz o <i>branch-and-bound</i> crescer demais.</li>
+<li><b>Simetria:</b> enfermeiros com o mesmo contrato e as mesmas habilidades são intercambiáveis, e o solver explora muitas soluções equivalentes.</li>
+</ul>
+
+<h2>3. Os dados (INRC-II)</h2>
+<p>As instâncias são públicas, vêm da competição INRC-II (Ceschia et al., 2019) e estão em JSON. Cada instância combina: <b>Sc</b> (cenário: turnos, habilidades, contratos, enfermeiros), <b>H0</b> (histórico inicial, 3 opções) e uma sequência de <b>WD</b> (demanda e pedidos de cada semana, 10 opções). O nome <code>n030w4 1 6-2-9-1</code> significa 30 enfermeiros, 4 semanas, histórico 1 e semanas 6, 2, 9, 1. Escolhemos as 8 instâncias (30 a 60 enfermeiros, 4 e 8 semanas) para as quais Legrain e Omer (2023) publicam o ótimo ou os melhores limites; assim conseguimos dizer “estamos a X% do ótimo”.</p>
+<p><b>Por que essas e não outras?</b> Elas são grandes o bastante para não serem triviais (o Gurobi não resolve nenhuma em 5 minutos), pequenas o bastante para rodar em um PC, e são exatamente as usadas pela literatura que comparamos.</p>
+
+<h2>4. O modelo de Programação Linear Inteira</h2>
+<p><b>Variável principal:</b> <i>x<sub>ndsk</sub></i> = 1 se o enfermeiro <i>n</i> faz o turno <i>s</i> com a habilidade <i>k</i> no dia <i>d</i>. Ela só existe para habilidades que o enfermeiro possui, e com isso H4 é garantida “de graça”. Variáveis auxiliares: <i>a<sub>nds</sub></i> (faz o turno <i>s</i> no dia <i>d</i>) e <i>w<sub>nd</sub></i> (trabalha no dia <i>d</i>).</p>
+<p><b>Hard:</b> H1 é <i>w<sub>nd</sub></i> = ∑ <i>a<sub>nds</sub></i> ≤ 1; H2 é ∑ <i>x</i> ≥ demanda mínima; H3 é <i>a</i>(dia <i>d</i>, Late) + <i>a</i>(dia <i>d</i>+1, Early) ≤ 1.</p>
+<p><b>Soft, a parte inteligente:</b> cada regra flexível ganha uma variável de violação, que entra no objetivo com o seu peso.</p>
+<ul>
+<li><b>Máximo de dias seguidos</b> (ex.: no máximo 5): para cada janela de 6 dias seguidos, “se os 6 forem trabalhados, conte 1”: <i>e</i> ≥ (soma dos 6 <i>w</i>) − 5. Se o enfermeiro trabalhar 7 dias seguidos, há 2 janelas cheias e o custo é 2 × 30. É exatamente o número de dias em excesso.</li>
+<li><b>Mínimo de dias seguidos</b> (ex.: no mínimo 3): detectamos o padrão “folga, exatamente <i>j</i> dias de trabalho, folga” com <i>j</i> &lt; 3. A variável é forçada a 1 só quando o padrão acontece e o custo é (3 − <i>j</i>) × 30, ou seja, quantos dias faltaram.</li>
+<li><b>Fim de semana completo:</b> <i>c</i> ≥ <i>w</i><sub>sáb</sub> − <i>w</i><sub>dom</sub> e <i>c</i> ≥ <i>w</i><sub>dom</sub> − <i>w</i><sub>sáb</sub>, ou seja, <i>c</i> ≥ |sáb − dom|.</li>
+<li><b>Total de turnos</b> e <b>máximo de fins de semana</b>: excesso e falta em relação ao contrato, somando o histórico.</li>
+</ul>
+<p><b>Por que o objetivo é exato?</b> Como minimizamos, o solver sempre quer cada variável de violação no menor valor permitido. Assim, no ótimo, cada uma vale exatamente a violação. Isso foi <b>testado</b>: o modelo dá o mesmo custo do avaliador oficial nas 9 soluções de referência e em escalas aleatórias (<code>testes.py</code>).</p>
+<p><b>Cuidado técnico</b> (pode cair em pergunta): quando o Gurobi para por tempo, a solução incumbente pode ter variáveis de violação “frouxas”, maiores que o necessário, e o objetivo reportado fica inflado. Por isso, depois do solve, fixamos <i>x</i> e resolvemos de novo, o que é instantâneo, para obter o custo real da escala. Nas heurísticas, o custo sempre vem do avaliador.</p>
+<p><b>Tamanho:</b> de 26 mil variáveis e restrições (n030w4) a 108 mil (n060w8).</p>
+
+<h2>5. O método exato: Gurobi via AMPL</h2>
+<p>O AMPL é a linguagem de modelagem (o arquivo <code>nurse.mod</code>); o Gurobi é o solver. O Gurobi usa <b>branch-and-bound</b> com planos de corte: resolve a relaxação linear (o que dá um <b>limite inferior</b>, LB, porque nenhuma escala inteira pode custar menos), ramifica em variáveis fracionárias e guarda a melhor escala encontrada (a <b>incumbente</b>, limite superior UB).</p>
+<div class="caixa"><p><b>Gap</b> = (UB − LB) / UB. Gap 0% significa ótimo provado. Gap 70% significa que a escala encontrada pode estar até 70% acima do ótimo; não sabemos o quanto, só sabemos o pior caso. Por isso comparamos também com o <b>ótimo publicado</b>, que dá a qualidade real.</p></div>
+<p><b>Por que ele trava em 8 semanas?</b> O modelo dobra de tamanho, a relaxação linear demora muito para resolver e é fraca, e em 300 s o solver mal sai do nó raiz. A incumbente vem de heurísticas internas do Gurobi, ainda ruins nesse ponto. Os autores que resolvem essas instâncias até o ótimo usam <b>branch-and-price</b> especializado (geração de colunas: cada coluna é uma escala inteira de um enfermeiro), com horas de execução.</p>
+
+<h2>6. Conceitos de heurística (base para as seções 7 e 8)</h2>
+<ul>
+<li><b>Heurística construtiva:</b> monta uma solução passo a passo (aqui, dia a dia, vaga a vaga).</li>
+<li><b>Vizinhança:</b> conjunto de soluções obtidas com uma pequena alteração (um <b>movimento</b>). Usamos quatro: <b>N1</b>, trocar o que um enfermeiro faz em um dia; <b>N2</b>, dois enfermeiros trocam suas atribuições em um dia (a cobertura não muda); <b>N3</b>, dar o mesmo turno ou folga a um enfermeiro em 2 a 5 dias seguidos; <b>N4</b>, dois enfermeiros trocam suas atribuições em 2 a 7 dias seguidos.</li>
+<li><b>Busca local:</b> aplica movimentos que melhoram até não haver melhora, parando num <b>ótimo local</b>: a melhor solução “das redondezas”, mas não necessariamente a melhor de todas.</li>
+<li><b>Metaheurística:</b> estratégia de alto nível para <b>escapar de ótimos locais</b>, por exemplo recomeçando de outro ponto (GRASP), perturbando (ILS) ou aceitando pioras (SA).</li>
+<li><b>Avaliação incremental:</b> o segredo de desempenho. Um movimento só muda 1 ou 2 enfermeiros, então recalculamos só o custo deles (uma passada pela linha, em <code>custo_rapido.py</code>) e os contadores de cobertura do dia, em vez de reavaliar a escala inteira. Isso permite milhões de movimentos por execução.</li>
+<li><b>Restrições hard nas heurísticas:</b> H1 e H4 são garantidas pela representação. H2 e H3 viram penalidade de 10.000 por violação, de modo que qualquer escala viável é muito melhor que qualquer inviável e a busca elimina as violações primeiro.</li>
+</ul>
+
+<h2>7. GRASP (com VND e ILS)</h2>
+<p><b>GRASP</b> (<i>Greedy Randomized Adaptive Search Procedure</i>; Feo e Resende, 1995) repete: (1) <b>construção gulosa-aleatorizada</b> e (2) <b>busca local</b>, guardando a melhor solução.</p>
+<p><b>Construção:</b> dia a dia, preenchemos primeiro as vagas obrigatórias (demanda mínima) e depois as opcionais (até a ótima). Para cada vaga, calculamos o custo incremental de cada enfermeiro disponível e montamos a <b>RCL</b> (lista restrita de candidatos): os enfermeiros com custo ≤ <i>c</i><sub>mín</sub> + α(<i>c</i><sub>máx</sub> − <i>c</i><sub>mín</sub>). Sorteamos um deles. Com α = 0 a escolha é puramente gulosa, sempre a mesma solução; com α = 1 é aleatória. Usamos α = 0,15. O custo também tem um termo de “ritmo”, que evita gastar logo no começo os turnos de quem tem contrato curto.</p>
+<p><b>VND</b> (<i>Variable Neighborhood Descent</i>): tenta N1; se melhorar, volta para N1; senão tenta N2, depois N3, depois N4. Termina quando nenhuma das quatro melhora. Vai das vizinhanças baratas para as caras.</p>
+<p><b>ILS</b> (<i>Iterated Local Search</i>): no ótimo local, aplica uma <b>perturbação</b> (4 movimentos aleatórios de bloco) e roda o VND de novo; se o resultado for melhor, aceita. Para depois de 30 tentativas seguidas sem melhora.</p>
+<div class="caixa"><p><b>Melhoria que fizemos (vale contar na apresentação).</b> Medimos que o VND completo levava 96 s na n060w8, e cada perturbação disparava outro VND completo, embora tivesse mudado só 4 blocos. Resultado: apenas 1 ou 2 iterações em 300 s. Criamos um <b>VND local</b>: após a perturbação, a busca só revisita os enfermeiros e dias afetados (com margem de 3 dias), porque o resto já era ótimo local. As iterações da fase ILS ficaram de 3 a 4 vezes mais rápidas, e o GRASP de 60 s melhorou nas três instâncias de teste (1650 → 1520, 4125 → 3915, 2885 → 2695).</p></div>
+
+<h2>8. Simulated Annealing e matheurística LNS</h2>
+<p><b>Simulated Annealing</b> (Kirkpatrick et al., 1983). Analogia: na metalurgia, resfriar o metal devagar deixa os átomos se acomodarem numa estrutura de baixa energia. No algoritmo: sorteia um movimento; se melhora, aceita; se piora em Δ, aceita com probabilidade <b>exp(−Δ/T)</b>. Com T alta, aceita muitas pioras e explora; com T baixa, quase só aceita melhoras e refina. A temperatura cai de T<sub>0</sub> = 40 até T<sub>f</sub> = 2 ao longo dos 300 s. Exemplo: com T = 40, uma piora de 30 pontos é aceita com probabilidade e<sup>−0,75</sup> ≈ 47%; com T = 2, a probabilidade é e<sup>−15</sup> ≈ 0. A temperatura foi calibrada nas instâncias de teste, não nas finais, para não “treinar no conjunto de prova”. Valores entre 20 e 60 deram resultados parecidos.</p>
+<p><b>Por que o SA vai tão bem aqui?</b> Ele não faz busca local completa: cada passo avalia <b>um</b> movimento aleatório em microssegundos, então faz milhões de passos em 300 s. Já o VND do GRASP precisa varrer vizinhanças inteiras para provar que está num ótimo local. Além disso, aceitar pioras permite atravessar “vales” que a busca local não atravessa. Ceschia et al. (2020) usaram SA justamente neste problema.</p>
+<p><b>Matheurística LNS (fix-and-optimize).</b> Ideia: o solver não dá conta do problema inteiro, mas resolve muito bem um <b>pedaço</b>. Partindo do GRASP (20% do tempo), repetimos: escolhemos um grupo de enfermeiros (todos os dias) ou uma janela de dias (todos os enfermeiros); <b>fixamos</b> todas as outras variáveis; o solver (HiGHS, livre) reotimiza só aquele pedaço por até 10 s, partindo da solução atual; se melhorar, aceita. O tamanho do pedaço se ajusta sozinho: cresce quando o subproblema fica fácil e diminui quando estoura o tempo. É <i>Large Neighborhood Search</i> (Shaw, 1998; Pisinger e Ropke, 2010), em que a vizinhança é tão grande que só um solver exato consegue explorá-la.</p>
+
+<h2>9. Resultados e como interpretá-los</h2>
+<!--RESULTADOS-->
+<p><b>Configuração:</b> 8 instâncias, 300 s por execução, 1 thread, mesma máquina (i5-13400). Gurobi: 1 execução por instância. Heurísticas: 2 sementes (reportamos a média). Todas as escalas são viáveis.</p>
+<table class="nw">
+<thead><tr><th class="l">Instância</th><th>Melhor publ.</th><th>Gurobi</th><th>GRASP</th><th>SA</th><th>LNS</th><th>Vencedor</th></tr></thead>
+<tbody>
+<tr><td class="l">n030w4</td><td>1.670*</td><td><b>1.785</b></td><td>2.565</td><td>1.955</td><td>1.868</td><td>Gurobi</td></tr>
+<tr><td class="l">n040w4</td><td>1.565*</td><td>2.435</td><td>3.132</td><td><b>1.998</b></td><td>2.185</td><td>SA</td></tr>
+<tr><td class="l">n050w4</td><td>1.315*</td><td><b>1.810</b></td><td>3.425</td><td>1.912</td><td>2.332</td><td>Gurobi</td></tr>
+<tr><td class="l">n060w4</td><td>2.450*</td><td>8.110</td><td>5.142</td><td><b>3.000</b></td><td>4.210</td><td>SA</td></tr>
+<tr class="sep"><td class="l">n030w8</td><td>2.010*</td><td>4.580</td><td>4.812</td><td><b>2.725</b></td><td>2.940</td><td>SA</td></tr>
+<tr><td class="l">n040w8</td><td>2.515</td><td>21.655</td><td>6.845</td><td><b>4.018</b></td><td>5.575</td><td>SA</td></tr>
+<tr><td class="l">n050w8</td><td>4.810</td><td>27.065</td><td>9.710</td><td><b>6.415</b></td><td>8.612</td><td>SA</td></tr>
+<tr><td class="l">n060w8</td><td>2.150</td><td>26.830</td><td>9.092</td><td><b>4.268</b></td><td>7.218</td><td>SA</td></tr>
+</tbody></table>
+<p class="legenda">Custo das escalas (menor é melhor). * = ótimo provado na literatura.</p>
+<p><b>Leitura 1: o exato funciona no pequeno e trava no grande.</b> O Gurobi não provou a otimalidade de nenhuma das 8 instâncias. Nas de 4 semanas foi bem em duas (n030w4 a 6,9% do ótimo, n050w4 a 37,6%) e venceu as heurísticas nelas. Nas de 8 semanas, o gap fica entre 66% e 97% e a escala custa de 2,3 a 12,5 vezes o melhor valor publicado. Nas instâncias pequenas de teste ele prova o ótimo de algumas (seção 9.1), o que mostra que o modelo está certo; o problema é a escala.</p>
+<p><b>Leitura 2: o SA é o melhor método.</b> Venceu 6 de 8 instâncias, com distância média de 42,5% ao melhor publicado, contra 85,4% do LNS, 145,1% do GRASP e 353,8% do Gurobi. Nas de 8 semanas, o SA é de 1,7 a 6,3 vezes melhor que o Gurobi. Motivo: cerca de 14 milhões de movimentos baratos por execução, contra cerca de 2 construções do GRASP e 36 subproblemas do LNS.</p>
+<p><b>Leitura 3: o gap do Gurobi engana.</b> O limite inferior é fraco (1.385 na n030w4, cujo ótimo é 1.670). Por isso o gap de 22,4% superestima a distância real, que é de 6,9%. Sempre olhe também a distância ao ótimo publicado.</p>
+<p><b>Leitura 4: ainda há espaço.</b> Mesmo o SA fica de 17% a 98% acima do ótimo publicado, que veio de um branch-and-price com horas de CPU. Isso é esperado e honesto de dizer.</p>
+<p><b>Sobre o gráfico de convergência</b> (n040w8): o SA desce continuamente; o LNS melhora em degraus (cada degrau é um subproblema resolvido pelo solver); o GRASP só aparece em ~205 s porque registra a melhor escala apenas ao fim de cada iteração (construção + VND + ILS).</p>
+<h3>9.1. Instâncias pequenas (teste), Gurobi com 60 s</h3>
+<!--TESTE_GUIA-->
+<p>Ótimo provado em 2 de 9 (n005w4, 5 enfermeiros). Mesmo com só 12 enfermeiros, as de 8 semanas (n012w8) ficam com gap de 52% a 77%: <b>o horizonte é o que mais pesa</b>. A coluna “Ref. competição” é a solução de referência da versão dinâmica (só ordem de grandeza).</p><table class="nw">
+<thead><tr><th class="l">Instância</th><th>N</th><th>Sem.</th><th>Custo</th><th>Limite inferior</th><th>Gap</th><th>Tempo (s)</th><th>Status</th><th>Ref. competição</th></tr></thead>
+<tbody>
+<tr><td class="l">n005w4 (0; 1-2-3-3)</td><td>5</td><td>4</td><td>1.470</td><td>1.470</td><td>0,0%</td><td>51</td><td>ótimo</td><td>1.695</td></tr>
+<tr><td class="l">n005w4 (1; 5-3-1-0)</td><td>5</td><td>4</td><td>1.625</td><td>1.495</td><td>8,0%</td><td>60</td><td>limite</td><td>2.010</td></tr>
+<tr><td class="l">n005w4 (2; 6-7-8-9)</td><td>5</td><td>4</td><td>1.430</td><td>1.430</td><td>0,0%</td><td>15</td><td>ótimo</td><td>1.720</td></tr>
+<tr class="sep"><td class="l">n012w8 (0; 3-5-0-2-0-4-5-2)</td><td>12</td><td>8</td><td>8.385</td><td>1.913</td><td>77,2%</td><td>60</td><td>limite</td><td>3.295</td></tr>
+<tr><td class="l">n012w8 (1; 7-7-0-8-9-3-2-6)</td><td>12</td><td>8</td><td>4.990</td><td>2.417</td><td>51,6%</td><td>60</td><td>limite</td><td>3.805</td></tr>
+<tr><td class="l">n012w8 (2; 4-5-6-7-2-1-2-1)</td><td>12</td><td>8</td><td>9.200</td><td>2.165</td><td>76,5%</td><td>60</td><td>limite</td><td>3.745</td></tr>
+<tr class="sep"><td class="l">n021w4 (0; 5-4-1-2)</td><td>21</td><td>4</td><td>2.150</td><td>1.510</td><td>29,8%</td><td>74</td><td>limite</td><td>2.305</td></tr>
+<tr><td class="l">n021w4 (1; 0-6-1-6)</td><td>21</td><td>4</td><td>2.085</td><td>1.465</td><td>29,7%</td><td>74</td><td>limite</td><td>2.305</td></tr>
+<tr><td class="l">n021w4 (2; 8-1-4-3)</td><td>21</td><td>4</td><td>1.855</td><td>1.520</td><td>18,1%</td><td>60</td><td>limite</td><td>2.345</td></tr>
+</tbody></table>
+<p class="legenda">Gurobi nas instâncias de teste, limite de 60 s, 1 thread.</p>
+<p class="nota">Ref. competição: custo da solução de referência distribuída com os dados, obtida na versão dinâmica (semana a semana), que serve apenas como ordem de grandeza.</p>
+<!--/TESTE_GUIA-->
+<!--/RESULTADOS-->
+
+<h2>10. Perguntas prováveis e respostas</h2>
+<div class="qa">
+<p class="q">Por que trocaram de tema (do problema de cobertura de conjuntos para o nurse rostering)?</p>
+<p class="a">O orientador observou que o Gurobi resolvia o problema de cobertura com facilidade. Passamos para a etapa seguinte do planejamento (quem trabalha em cada turno, com regras individuais), que é bem mais difícil e tem referências e instâncias públicas reconhecidas.</p>
+<p class="q">Por que não comparar com o ranking da competição?</p>
+<p class="a">A competição é dinâmica (uma semana por vez, sem conhecer o futuro). Resolvemos a versão estática (horizonte inteiro conhecido), que tem ótimos publicados por Legrain e Omer (2023). Comparamos com eles.</p>
+<p class="q">O que significa o gap do Gurobi?</p>
+<p class="a">(custo da melhor escala − limite inferior) / custo da melhor escala. É uma garantia de pior caso: a escala está no máximo X% acima do ótimo. O gap real, em relação ao ótimo publicado, costuma ser menor, porque o limite inferior do Gurobi é fraco.</p>
+<p class="q">Por que o Gurobi não resolve, se é o melhor solver comercial?</p>
+<p class="a">O modelo compacto tem dezenas de milhares de variáveis binárias, simetria entre enfermeiros e uma relaxação linear fraca por causa das regras de sequência. Quem resolve até o ótimo usa decomposição (branch-and-price) e horas de CPU. Em 300 s e 1 thread, o Gurobi mal sai do nó raiz nas instâncias de 8 semanas.</p>
+<p class="q">Como sabem que o modelo está certo?</p>
+<p class="a">Comparamos o objetivo do modelo com um avaliador independente, que reproduz o validador oficial, nas 9 soluções de referência da competição e em escalas aleatórias. Os custos batem em todos os casos (<code>testes.py</code>).</p>
+<p class="q">As heurísticas garantem viabilidade?</p>
+<p class="a">Não por construção, mas a penalidade de 10.000 por violação faz a busca eliminá-las primeiro. Todas as escalas reportadas são viáveis; isso é conferido pelo avaliador.</p>
+<p class="q">Por que α = 0,15 no GRASP e T<sub>0</sub> = 40 no SA?</p>
+<p class="a">α pequeno mantém a construção quase gulosa, com um pouco de diversidade. T<sub>0</sub> = 40 é próximo do peso típico de uma violação (30), então no início pioras de uma violação são aceitas com frequência razoável. Calibramos nas instâncias de teste e o resultado é pouco sensível na faixa de 20 a 60.</p>
+<p class="q">Por que 2 sementes só?</p>
+<p class="a">Limitação de tempo de máquina: cada execução leva 5 minutos e há 8 instâncias × 3 métodos. Reportamos média e melhor. Com mais tempo faríamos 10 sementes e testes estatísticos (por exemplo, Wilcoxon).</p>
+<p class="q">O que é uma matheurística?</p>
+<p class="a">Uma heurística que usa um método exato (solver de PLI) como componente. No nosso LNS, a heurística escolhe <i>qual pedaço</i> otimizar e o solver otimiza aquele pedaço de forma exata.</p>
+<p class="q">Qual a diferença entre GRASP, ILS e SA para escapar de ótimos locais?</p>
+<p class="a">O GRASP recomeça de uma nova construção (diversificação por reinício); o ILS perturba a solução atual e refaz a busca local (diversificação local); o SA aceita pioras com probabilidade controlada pela temperatura (diversificação contínua, que diminui com o tempo).</p>
+<p class="q">O que fariam com mais tempo?</p>
+<p class="a">Rodar mais sementes e todas as 40 instâncias da literatura; testar o Gurobi com mais threads e mais tempo; reforçar o modelo (cortes e quebra de simetria); combinar SA e LNS (usar o SA como solução inicial do LNS); e testar uma formulação por geração de colunas.</p>
+<p class="q">Isso seria usado num hospital real?</p>
+<p class="a">Sim, é o caso de uso: a chefia informa demanda, contratos e pedidos, e o método devolve uma escala em minutos. Os pesos das penalidades podem ser ajustados às prioridades do hospital.</p>
+</div>
+
+<h2>11. Glossário</h2>
+<ul>
+<li><b>PLI</b>: Programação Linear Inteira. <b>Relaxação linear</b>: o mesmo modelo permitindo variáveis fracionárias, que dá o limite inferior.</li>
+<li><b>Branch-and-bound</b>: árvore de subproblemas em que o solver ramifica em variáveis fracionárias e poda pelo limite. <b>Branch-and-price</b>: branch-and-bound com geração de colunas.</li>
+<li><b>Incumbente / UB</b>: melhor solução viável encontrada. <b>LB</b>: limite inferior. <b>Gap</b>: (UB − LB)/UB.</li>
+<li><b>Hard / soft</b>: restrição obrigatória / restrição violável com penalidade.</li>
+<li><b>Vizinhança, movimento, ótimo local</b>: ver seção 6. <b>RCL</b>: lista restrita de candidatos do GRASP.</li>
+<li><b>VND</b>: descida em vizinhança variável. <b>ILS</b>: busca local iterada. <b>SA</b>: <i>Simulated Annealing</i>. <b>LNS</b>: busca em vizinhança grande.</li>
+<li><b>Instância estática</b>: horizonte inteiro conhecido de antemão. <b>Histórico</b>: estado dos enfermeiros antes do horizonte.</li>
+</ul>
+
+<h2>12. Números para memorizar</h2>
+<!--NUMEROS-->
+<ul>
+<li><b>8</b> instâncias de avaliação; <b>30 a 60</b> enfermeiros; <b>4 e 8</b> semanas; <b>300 s</b>, 1 thread, i5-13400.</li>
+<li>Modelo: <b>26 mil a 108 mil</b> variáveis e restrições; <b>5.488 a 20.160</b> variáveis binárias <i>x</i>.</li>
+<li>Gurobi: <b>0 de 8</b> ótimos provados; gap de <b>22% a 97%</b>; melhor caso: n030w4 a <b>6,9%</b> do ótimo.</li>
+<li>SA: melhor em <b>6 de 8</b>; distância média <b>42,5%</b> (Gurobi 353,8%, LNS 85,4%, GRASP 145,1%); <b>~14 milhões</b> de movimentos por execução; T<sub>0</sub> = 40, T<sub>f</sub> = 2.</li>
+<li>GRASP: α = <b>0,15</b>; VND local tornou o ILS <b>3–4×</b> mais rápido; penalidade hard <b>10.000</b>.</li>
+<li>LNS: GRASP por 20% do tempo, subproblemas de até <b>10 s</b>, cerca de <b>36</b> por execução.</li>
+<li>Pesos: S1 30, S2 15/30, S3 30, S4 10, S5 30, S6 20, S7 30.</li>
+<li>Referência dos ótimos: <b>Legrain e Omer (2023)</b>, GERAD G-2023-02, Tabela 5.</li>
+</ul>
+<!--/NUMEROS-->
+
+<h2>Referências citadas neste guia</h2>
+<div class="ref">
+<p>Ceschia, S., Dang, N., De Causmaecker, P., Haspeslagh, S. e Schaerf, A. (2019). The Second International Nurse Rostering Competition. <i>Annals of Operations Research</i>, 274(1–2):171–186.</p>
+<p>Ceschia, S., Guido, R. e Schaerf, A. (2020). Solving the static INRC-II nurse rostering problem by simulated annealing based on large neighborhoods. <i>Annals of Operations Research</i>, 288(1):95–113.</p>
+<p>Cheang, B., Li, H., Lim, A. e Rodrigues, B. (2003). Nurse rostering problems – a bibliographic survey. <i>European Journal of Operational Research</i>, 151(3):447–460.</p>
+<p>Feo, T. A. e Resende, M. G. C. (1995). Greedy randomized adaptive search procedures. <i>Journal of Global Optimization</i>, 6(2):109–133.</p>
+<p>Kirkpatrick, S., Gelatt, C. D. e Vecchi, M. P. (1983). Optimization by simulated annealing. <i>Science</i>, 220(4598):671–680.</p>
+<p>Legrain, A. e Omer, J. (2023). A dedicated pricing algorithm to solve a large family of nurse scheduling problems with branch-and-price. <i>Les Cahiers du GERAD</i>, G-2023-02, HEC Montréal.</p>
+<p>Pisinger, D. e Ropke, S. (2010). Large neighborhood search. In Gendreau, M. e Potvin, J.-Y. (Eds.), <i>Handbook of Metaheuristics</i>, 2. ed., p. 399–419. Springer.</p>
+<p>Shaw, P. (1998). Using constraint programming and local search methods to solve vehicle routing problems. In <i>CP98</i>, LNCS 1520, p. 417–431. Springer.</p>
+</div>
+</body></html>

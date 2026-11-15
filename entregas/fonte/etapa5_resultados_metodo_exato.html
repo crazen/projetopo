@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Etapa 5 - Resultados do método exato</title>
+<link rel="stylesheet" href="etapa.css"></head><body>
+
+<h1>Escalonamento de Enfermeiros com Regras Trabalhistas:<br>Programação Inteira e Metaheurísticas nas Instâncias do INRC-II</h1>
+<p class="autores">Eduardo Lopes - 168804, Jorge Dourado - 168900</p>
+<p class="etapa">Pesquisa Operacional - UNIFESP/ICT - Etapa 5: Implementação – Resultados do Método Exato</p>
+
+<h2>1. Configuração dos experimentos</h2>
+<p>O modelo de Programação Linear Inteira da Etapa 4 (arquivo <code>nurse.mod</code>) foi escrito em AMPL (Fourer et al., 2003) e resolvido pelo <b>Gurobi 13.0.3</b>, com licença acadêmica, em um computador Intel Core i5-13400 com 16 GB de RAM, usando <b>1 thread</b> e <i>mipgap</i> = 0, ou seja, o solver só para antes do limite de tempo se provar a otimalidade. Os dados de cada instância foram convertidos do formato JSON da competição INRC-II (Ceschia et al., 2019) para o formato de dados do AMPL. Quando o solver para por tempo, as variáveis de penalidade da melhor solução encontrada podem estar maiores que o necessário. Por isso, ao final, as variáveis de atribuição <span class="var">x</span> são fixadas e o modelo é resolvido novamente (em menos de 1 s), o que dá o <b>custo real</b> da escala. Esse custo foi conferido com o avaliador independente, que reproduz o validador oficial do INRC-II.</p>
+<p>A qualidade de cada solução é medida de duas formas: pelo <b>gap</b> informado pelo solver, (custo − limite inferior)/custo, que é uma garantia de pior caso; e pela <b>distância ao melhor valor publicado</b> por Legrain e Omer (2023), (custo − melhor publicado)/melhor publicado, que mede a qualidade real.</p>
+
+<h2>2. Resultados nas instâncias de avaliação (300 s)</h2>
+<table class="nw">
+<thead><tr><th class="l">Instância</th><th>N</th><th>Sem.</th><th>Variáveis /<br>restrições</th><th>Custo da<br>escala</th><th>Limite<br>inferior</th><th>Gap</th><th>Tempo<br>(s)</th><th>Status</th><th>Melhor<br>publicado</th><th>Distância ao<br>melhor publ.</th></tr></thead>
+<tbody>
+<!--LINHAS_EXATO-->
+<tr><td class="l">n030w4</td><td>30</td><td>4</td><td>26,4 / 26,7 mil</td><td>1.785</td><td>1.385</td><td>22,4%</td><td>305</td><td>limite</td><td>1.670*</td><td>+6,9%</td></tr>
+<tr><td class="l">n040w4</td><td>40</td><td>4</td><td>37,4 / 36,6 mil</td><td>2.435</td><td>705</td><td>71,0%</td><td>345</td><td>limite</td><td>1.565*</td><td>+55,6%</td></tr>
+<tr><td class="l">n050w4</td><td>50</td><td>4</td><td>45,6 / 44,7 mil</td><td>1.810</td><td>715</td><td>60,5%</td><td>439</td><td>limite</td><td>1.315*</td><td>+37,6%</td></tr>
+<tr><td class="l">n060w4</td><td>60</td><td>4</td><td>58,7 / 58,8 mil</td><td>8.110</td><td>1.835</td><td>77,4%</td><td>300</td><td>limite</td><td>2.450*</td><td>+231,0%</td></tr>
+<tr class="sep"><td class="l">n030w8</td><td>30</td><td>8</td><td>52,5 / 53,0 mil</td><td>4.580</td><td>1.556</td><td>66,0%</td><td>300</td><td>limite</td><td>2.010*</td><td>+127,9%</td></tr>
+<tr><td class="l">n040w8</td><td>40</td><td>8</td><td>74,2 / 72,6 mil</td><td>21.655</td><td>1.215</td><td>94,4%</td><td>300</td><td>limite</td><td>2.515</td><td>+761,0%</td></tr>
+<tr><td class="l">n050w8</td><td>50</td><td>8</td><td>90,5 / 88,7 mil</td><td>27.065</td><td>2.992</td><td>88,9%</td><td>300</td><td>limite</td><td>4.810</td><td>+462,7%</td></tr>
+<tr><td class="l">n060w8</td><td>60</td><td>8</td><td>107,8 / 106,3 mil</td><td>26.830</td><td>716</td><td>97,3%</td><td>300</td><td>limite</td><td>2.150</td><td>+1.147,9%</td></tr>
+<!--/LINHAS_EXATO-->
+</tbody></table>
+<p class="legenda">Tabela 1. Gurobi 13.0.3 via AMPL, limite de 300 s, 1 thread. * = ótimo provado na literatura.</p>
+<p class="nota">Status “limite” = o tempo acabou antes de provar a otimalidade. O tempo informado pelo AMPL inclui a preparação do modelo pelo solver, por isso pode passar um pouco de 300 s. Variáveis e restrições: tamanho do modelo gerado (milhares). Melhor publicado: Legrain e Omer (2023), Tabela 5.</p>
+
+<!--SEC_TESTE-->
+<h2>3. Resultados nas instâncias de teste (60 s)</h2>
+<p>Para verificar o comportamento do método em instâncias pequenas, resolvemos também as 9 instâncias do conjunto de teste da competição (as combinações que acompanham soluções de referência), com limite de 60 s.</p>
+<table class="nw">
+<thead><tr><th class="l">Instância</th><th>N</th><th>Sem.</th><th>Custo</th><th>Limite inferior</th><th>Gap</th><th>Tempo (s)</th><th>Status</th><th>Ref. competição</th></tr></thead>
+<tbody>
+<tr><td class="l">n005w4 (0; 1-2-3-3)</td><td>5</td><td>4</td><td>1.470</td><td>1.470</td><td>0,0%</td><td>51</td><td>ótimo</td><td>1.695</td></tr>
+<tr><td class="l">n005w4 (1; 5-3-1-0)</td><td>5</td><td>4</td><td>1.625</td><td>1.495</td><td>8,0%</td><td>60</td><td>limite</td><td>2.010</td></tr>
+<tr><td class="l">n005w4 (2; 6-7-8-9)</td><td>5</td><td>4</td><td>1.430</td><td>1.430</td><td>0,0%</td><td>15</td><td>ótimo</td><td>1.720</td></tr>
+<tr class="sep"><td class="l">n012w8 (0; 3-5-0-2-0-4-5-2)</td><td>12</td><td>8</td><td>8.385</td><td>1.913</td><td>77,2%</td><td>60</td><td>limite</td><td>3.295</td></tr>
+<tr><td class="l">n012w8 (1; 7-7-0-8-9-3-2-6)</td><td>12</td><td>8</td><td>4.990</td><td>2.417</td><td>51,6%</td><td>60</td><td>limite</td><td>3.805</td></tr>
+<tr><td class="l">n012w8 (2; 4-5-6-7-2-1-2-1)</td><td>12</td><td>8</td><td>9.200</td><td>2.165</td><td>76,5%</td><td>60</td><td>limite</td><td>3.745</td></tr>
+<tr class="sep"><td class="l">n021w4 (0; 5-4-1-2)</td><td>21</td><td>4</td><td>2.150</td><td>1.510</td><td>29,8%</td><td>74</td><td>limite</td><td>2.305</td></tr>
+<tr><td class="l">n021w4 (1; 0-6-1-6)</td><td>21</td><td>4</td><td>2.085</td><td>1.465</td><td>29,7%</td><td>74</td><td>limite</td><td>2.305</td></tr>
+<tr><td class="l">n021w4 (2; 8-1-4-3)</td><td>21</td><td>4</td><td>1.855</td><td>1.520</td><td>18,1%</td><td>60</td><td>limite</td><td>2.345</td></tr>
+</tbody></table>
+<p class="legenda">Tabela 2. Gurobi nas instâncias de teste, limite de 60 s, 1 thread.</p>
+<p class="nota">Ref. competição: custo da solução de referência distribuída com os dados, obtida na versão dinâmica (semana a semana), que serve apenas como ordem de grandeza.</p>
+<!--/SEC_TESTE-->
+
+<h2>4. Análise</h2>
+<!--ANALISE-->
+<p><b>Qualidade da solução.</b> Nas instâncias de avaliação, o Gurobi atingiu o limite de 300 s em todas, sem provar a otimalidade de nenhuma. Nas de 4 semanas, a escala da n030w4 ficou a apenas 6,9% do ótimo e a da n050w4 a 37,6%, mas a da n060w4 ficou a 231%. Nas de 8 semanas, o gap ficou entre 66% e 97%, e as escalas custam de 2,3 a 12,5 vezes o melhor valor publicado: com 53 mil a 108 mil variáveis e restrições, o solver praticamente não passa do nó raiz no tempo disponível.</p>
+<p><b>Instâncias pequenas.</b> O Gurobi provou a otimalidade em 2 das 9 instâncias de teste (n005w4, com 5 enfermeiros, em 15 e 51 s) e, nas de 4 semanas, obteve escalas melhores que as soluções de referência da competição. Mesmo com apenas 12 enfermeiros, porém, as instâncias de 8 semanas (n012w8) ficaram com gap de 52% a 77% e escalas piores que as de referência. Isso mostra que o modelo é correto e que a dificuldade cresce sobretudo com o horizonte: o número de restrições de sequência e o acoplamento entre semanas tornam a relaxação linear fraca.</p>
+<p><b>Limite inferior e tempo.</b> O limite inferior do Gurobi é fraco (por exemplo, 1.385 na n030w4, cujo ótimo é 1.670). Por isso o gap superestima a distância real ao ótimo, e comparamos também com os valores publicados. O tempo reportado inclui a preparação do modelo, por isso passa de 300 s em três instâncias. Os autores que resolvem essas instâncias até o ótimo usam <i>branch-and-price</i> especializado e até horas de computação (Legrain e Omer, 2023). <b>Conclusão:</b> o método exato com o modelo compacto é adequado para instâncias pequenas ou de 4 semanas, mas não para as instâncias reais de 8 semanas em poucos minutos, o que motiva os métodos aproximados da Etapa 6.</p>
+<!--/ANALISE-->
+
+<h2>Referências</h2>
+<div class="ref">
+<p>Ceschia, S., Dang, N., De Causmaecker, P., Haspeslagh, S. e Schaerf, A. (2019). The Second International Nurse Rostering Competition. <i>Annals of Operations Research</i>, 274(1–2):171–186.</p>
+<p>Fourer, R., Gay, D. M. e Kernighan, B. W. (2003). <i>AMPL: A Modeling Language for Mathematical Programming</i>. 2. ed. Duxbury Press/Thomson.</p>
+<p>Legrain, A. e Omer, J. (2023). A dedicated pricing algorithm to solve a large family of nurse scheduling problems with branch-and-price. <i>Les Cahiers du GERAD</i>, G-2023-02, HEC Montréal.</p>
+</div>
+</body></html>

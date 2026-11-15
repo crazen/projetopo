@@ -1,0 +1,41 @@
+# rodar.run  --  resolve nurse.mod no AMPL para cada instancia e grava a tabela da Etapa 5.
+# Uso:   ampl rodar.run          (ou, no Python:  ampl.eval("include rodar.run;"))
+# Os .dat sao gerados por gen_dat.py (a pasta dat/ ja traz as 9 instancias de teste).
+
+model nurse.mod;
+
+# ---- escolha UM solver (descomente o bloco desejado) ----
+option solver gurobi;                                    # recomendado: devolve o limite inferior
+option gurobi_options 'timelim=60 mipgap=0 threads=1 bestbound=1';
+# option solver highs;                                   # alternativa livre: pode nao devolver o limite inferior
+# option highs_options 'timelim=60 mipgap=0 bestbound=1';
+
+# declarar o sufixo evita o erro "Bad suffix .bestbound" quando o solver nao o devolve (valor fica 0)
+suffix bestbound OUT;
+
+set ARQUIVOS := {'n005w4_H0_WD1-2-3-3', 'n005w4_H1_WD5-3-1-0', 'n005w4_H2_WD6-7-8-9',
+                 'n012w8_H0_WD3-5-0-2-0-4-5-2', 'n012w8_H1_WD7-7-0-8-9-3-2-6', 'n012w8_H2_WD4-5-6-7-2-1-2-1',
+                 'n021w4_H0_WD5-4-1-2', 'n021w4_H1_WD0-6-1-6', 'n021w4_H2_WD8-1-4-3'};
+
+param res symbolic;  param lb;  param tt;  param custo;
+
+printf "instancia;status;custo;limite_inferior;gap_%%;tempo_s\n" > resultados_ampl.csv;
+
+for {f in ARQUIVOS} {
+    reset data;
+    data ('dat/' & f & '.dat');
+    solve;
+    let res := solve_result;  let lb := Penalidade.bestbound;  let tt := _solve_elapsed_time;
+    # se parou por tempo, as variaveis de penalidade podem estar acima do minimo: fixa a escala (x)
+    # e resolve de novo (rapido) para obter o custo real da escala encontrada
+    fix x;  solve;  let custo := Penalidade;  unfix x;
+    if solve_result = 'infeasible' then {                       # nenhuma escala viavel encontrada
+        printf "%s;%s;;%s;;%.1f\n", f, res, if lb > 0 then lb & '' else '', tt >> resultados_ampl.csv;
+    } else if lb > 0 then {
+        printf "%s;%s;%g;%g;%.1f;%.1f\n", f, res, custo, lb, 100 * (custo - lb) / custo, tt >> resultados_ampl.csv;
+    } else {                                                    # solver nao devolveu o limite inferior
+        printf "%s;%s;%g;;;%.1f\n", f, res, custo, tt >> resultados_ampl.csv;
+    }
+}
+close resultados_ampl.csv;
+display _total_solve_elapsed_time;

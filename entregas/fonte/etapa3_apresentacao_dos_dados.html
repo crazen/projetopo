@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Etapa 3 - Apresentação dos dados</title>
+<link rel="stylesheet" href="etapa.css"></head><body>
+
+<h1>Escalonamento de Enfermeiros com Regras Trabalhistas:<br>Programação Inteira e Metaheurísticas nas Instâncias do INRC-II</h1>
+<p class="autores">Eduardo Lopes - 168804, Jorge Dourado - 168900</p>
+<p class="etapa">Pesquisa Operacional - UNIFESP/ICT - Etapa 3: Apresentação dos Dados</p>
+
+<h2>1. Origem dos dados</h2>
+<p>Os dados são as instâncias oficiais e públicas da <i>Second International Nurse Rostering Competition</i> (INRC-II), distribuídas pelos organizadores em formato JSON no site da competição (<i>mobiz.vives.be/inrc2</i>) e descritas por Ceschia et al. (2019). Elas foram construídas a partir de situações reais de hospitais belgas e são usadas como banco de testes padrão na literatura recente (Ceschia et al., 2020; Legrain e Omer, 2023), o que permite comparar nossos resultados com os valores publicados. Usamos dois pacotes: o <b>conjunto de teste</b> (3 cenários pequenos, com 5, 12 e 21 enfermeiros, acompanhados de soluções de referência) e o <b>conjunto da competição</b> (cenários com 30 a 120 enfermeiros e horizontes de 4 ou 8 semanas).</p>
+
+<h2>2. Estrutura de uma instância</h2>
+<p>Uma instância é formada por três tipos de arquivo, combinados como <i>cenário + histórico + sequência de semanas</i>:</p>
+<ul>
+<li><b>Cenário</b> (<code>Sc-n030w4.json</code>): dados fixos do hospital. Lista as habilidades (<i>HeadNurse</i>, <i>Nurse</i>, <i>Caretaker</i>, <i>Trainee</i>); os tipos de turno (<i>Early</i>, <i>Day</i>, <i>Late</i>, <i>Night</i>), cada um com o mínimo e o máximo de dias seguidos no mesmo turno; as sucessões proibidas (por exemplo, depois de um <i>Night</i> não pode haver <i>Early</i>, <i>Day</i> nem <i>Late</i> no dia seguinte); os contratos; e os enfermeiros, cada um com seu contrato e suas habilidades.</li>
+<li><b>Histórico</b> (<code>H0-n030w4-1.json</code>): situação de cada enfermeiro no fim do período anterior, com o último turno feito, os dias seguidos de trabalho, de folga e no mesmo turno, e os turnos e fins de semana já trabalhados. Há 3 históricos por cenário.</li>
+<li><b>Semana</b> (<code>WD-n030w4-6.json</code>): demanda de uma semana, com o número <b>mínimo</b> (restrição rígida) e <b>ótimo</b> (desejável) de enfermeiros para cada dia, turno e habilidade, além dos <b>pedidos de folga</b> (um dia inteiro ou um turno específico). Há 10 arquivos de semana por cenário.</li>
+</ul>
+<p>Uma instância é identificada por cenário, histórico e semanas. Por exemplo, <code>n030w4 1 6-2-9-1</code> tem 30 enfermeiros e 4 semanas, usa o histórico 1 e as semanas 6, 2, 9 e 1, nessa ordem. A Tabela 1 mostra os contratos do cenário <code>n030w4</code>.</p>
+
+<table>
+<thead><tr><th class="l">Contrato</th><th>Turnos no horizonte</th><th>Dias seguidos de trabalho</th><th>Folgas seguidas</th><th>Máx. fins de semana</th><th>Fim de semana completo</th></tr></thead>
+<tbody>
+<tr><td class="l">FullTime (integral)</td><td>15 a 22</td><td>3 a 5</td><td>2 a 3</td><td>2</td><td>sim</td></tr>
+<tr><td class="l">PartTime (parcial)</td><td>7 a 15</td><td>3 a 5</td><td>2 a 4</td><td>2</td><td>sim</td></tr>
+<tr><td class="l">HalfTime (meio per.)</td><td>5 a 11</td><td>2 a 4</td><td>2 a 5</td><td>1</td><td>sim</td></tr>
+</tbody></table>
+<p class="legenda">Tabela 1. Contratos do cenário n030w4 (4 semanas). Nos cenários de 8 semanas os limites de turnos e fins de semana dobram.</p>
+
+<h2>3. Instâncias selecionadas</h2>
+<p>Para o estudo escolhemos 8 instâncias da competição, com 30, 40, 50 e 60 enfermeiros e horizontes de 4 e 8 semanas. Elas são exatamente as combinações de histórico e semanas estudadas por Legrain e Omer (2023), que publicam para cada uma o valor ótimo (instâncias de 4 semanas) ou os melhores limites inferior e superior conhecidos (8 semanas). Assim podemos medir a qualidade de qualquer escala pela distância até esses valores. As 3 instâncias de teste, menores, servem para validar o modelo e calibrar os métodos. A Tabela 2 resume as instâncias.</p>
+
+<table class="nw">
+<thead><tr><th class="l">Instância (histórico; semanas)</th><th>N</th><th>Sem.</th><th>Contr.</th><th>Habil.<br>1/2/3</th><th>Dem.<br>mín.</th><th>Dem.<br>ótima</th><th>Pedidos</th><th>Var. <i>x</i></th><th>Melhor<br>publicado</th></tr></thead>
+<tbody>
+<tr><td class="l">n030w4 (1; 6-2-9-1)</td><td>30</td><td>4</td><td>3</td><td>13/15/2</td><td>369</td><td>507</td><td>31</td><td>5.488</td><td>1.670*</td></tr>
+<tr><td class="l">n040w4 (0; 2-0-6-1)</td><td>40</td><td>4</td><td>3</td><td>22/12/6</td><td>471</td><td>635</td><td>97</td><td>7.168</td><td>1.565*</td></tr>
+<tr><td class="l">n050w4 (0; 0-4-8-7)</td><td>50</td><td>4</td><td>3</td><td>22/28/0</td><td>565</td><td>812</td><td>100</td><td>8.736</td><td>1.315*</td></tr>
+<tr><td class="l">n060w4 (1; 6-1-1-5)</td><td>60</td><td>4</td><td>4</td><td>23/37/0</td><td>573</td><td>881</td><td>99</td><td>10.864</td><td>2.450*</td></tr>
+<tr class="sep"><td class="l">n030w8 (1; 2-7-0-9-3-6-0-6)</td><td>30</td><td>8</td><td>3</td><td>13/15/2</td><td>681</td><td>910</td><td>118</td><td>10.976</td><td>2.010*</td></tr>
+<tr><td class="l">n040w8 (0; 0-6-8-9-2-6-6-4)</td><td>40</td><td>8</td><td>3</td><td>22/12/6</td><td>833</td><td>1.187</td><td>181</td><td>14.336</td><td>2.515</td></tr>
+<tr><td class="l">n050w8 (1; 1-7-8-5-7-4-1-8)</td><td>50</td><td>8</td><td>3</td><td>22/28/0</td><td>1.110</td><td>1.702</td><td>224</td><td>17.472</td><td>4.810</td></tr>
+<tr><td class="l">n060w8 (0; 6-2-9-9-0-8-1-3)</td><td>60</td><td>8</td><td>3</td><td>30/30/0</td><td>1.472</td><td>1.882</td><td>306</td><td>20.160</td><td>2.150</td></tr>
+<tr class="sep"><td class="l">n005w4 (0; 1-2-3-3) – teste</td><td>5</td><td>4</td><td>2</td><td>2/3/0</td><td>94</td><td>111</td><td>13</td><td>672</td><td>–</td></tr>
+<tr><td class="l">n012w8 (0; 3-5-0-2-0-4-5-2) – teste</td><td>12</td><td>8</td><td>2</td><td>5/7/0</td><td>363</td><td>424</td><td>50</td><td>4.256</td><td>–</td></tr>
+<tr><td class="l">n021w4 (0; 5-4-1-2) – teste</td><td>21</td><td>4</td><td>3</td><td>10/8/3</td><td>258</td><td>337</td><td>23</td><td>3.920</td><td>–</td></tr>
+</tbody></table>
+<p class="legenda">Tabela 2. Instâncias usadas. Demandas somadas sobre todos os dias, turnos e habilidades. * = ótimo provado.</p>
+<p class="nota">N: enfermeiros; Contr.: tipos de contrato; Habil.: quantos enfermeiros têm 1, 2 ou 3 habilidades; Dem.: demanda; Var. <i>x</i>: número de variáveis binárias de atribuição do modelo (enfermeiro × dia × turno × habilidade possuída). O modelo completo, com as variáveis auxiliares das penalidades, tem de 26 mil (n030w4) a 108 mil (n060w8) variáveis e restrições. Melhor valor publicado: Legrain e Omer (2023), Tabela 5.</p>
+
+<h2>4. Observações sobre os dados</h2>
+<p>Alguns aspectos dos dados explicam a dificuldade do problema. (i) A <b>demanda ótima</b> é 30% a 50% maior que a mínima, e cobri-la entra em conflito com os limites de turnos dos contratos; por isso, mesmo a escala ótima tem penalidades. (ii) Cerca de metade dos enfermeiros possui uma única habilidade, o que reduz a flexibilidade para cobrir funções como <i>HeadNurse</i>. (iii) As regras de sequência (mínimo e máximo de dias seguidos, sucessões proibidas, fins de semana completos) acoplam dias vizinhos: a decisão de um dia afeta as penalidades de vários outros. (iv) O número de pedidos de folga e o tamanho do modelo crescem com o número de enfermeiros e, sobretudo, com o horizonte: de 4 para 8 semanas o modelo praticamente dobra. Os dados foram organizados por um script próprio (<code>organizar_dados.py</code>), lidos e validados por um avaliador que reproduz o cálculo de custo do validador oficial da competição e convertidos para o formato de dados do AMPL (<code>gen_dat.py</code>).</p>
+
+<h2>Referências</h2>
+<div class="ref">
+<p>Ceschia, S., Dang, N., De Causmaecker, P., Haspeslagh, S. e Schaerf, A. (2019). The Second International Nurse Rostering Competition. <i>Annals of Operations Research</i>, 274(1–2):171–186.</p>
+<p>Ceschia, S., Guido, R. e Schaerf, A. (2020). Solving the static INRC-II nurse rostering problem by simulated annealing based on large neighborhoods. <i>Annals of Operations Research</i>, 288(1):95–113.</p>
+<p>Legrain, A. e Omer, J. (2023). A dedicated pricing algorithm to solve a large family of nurse scheduling problems with branch-and-price. <i>Les Cahiers du GERAD</i>, G-2023-02, HEC Montréal.</p>
+</div>
+</body></html>

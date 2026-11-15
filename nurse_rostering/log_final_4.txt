@@ -1,0 +1,35 @@
+2 instancias x ['exato', 'grasp', 'lns'], 300s cada -> final_4.csv
+
+== n060w4_H1_WD6-1-1-5  exato  semente=0
+Running HiGHS 1.16.0 (git hash: f3f113d): Copyright (c) 2026 under MIT licence terms
+Includes third-party software components, see THIRD_PARTY_NOTICES.md for full details
+    {'custo': 41070, 'viavel': True, 'limite_inferior': 1453.5, 'gap_%': 96.5, 'tempo_s': 300.0, 'iteracoes': 'Time limit reached'}
+
+== n060w4_H1_WD6-1-1-5  grasp  semente=1
+    {'custo': 5730, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 2}
+
+== n060w4_H1_WD6-1-1-5  grasp  semente=2
+    {'custo': 5230, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 2}
+
+== n060w4_H1_WD6-1-1-5  lns  semente=1
+    {'custo': 4575, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 31}
+
+== n060w4_H1_WD6-1-1-5  lns  semente=2
+    {'custo': 4105, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.1, 'iteracoes': 33}
+
+== n030w8_H1_WD2-7-0-9-3-6-0-6  exato  semente=0
+    {'custo': 5795, 'viavel': True, 'limite_inferior': 1440.7, 'gap_%': 75.1, 'tempo_s': 300.1, 'iteracoes': 'Time limit reached'}
+
+== n030w8_H1_WD2-7-0-9-3-6-0-6  grasp  semente=1
+    {'custo': 5475, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 2}
+
+== n030w8_H1_WD2-7-0-9-3-6-0-6  grasp  semente=2
+    {'custo': 4975, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.2, 'iteracoes': 2}
+
+== n030w8_H1_WD2-7-0-9-3-6-0-6  lns  semente=1
+    {'custo': 3695, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.2, 'iteracoes': 31}
+
+== n030w8_H1_WD2-7-0-9-3-6-0-6  lns  semente=2
+    {'custo': 3820, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.1, 'iteracoes': 37}
+
+resultados em final_4.csv

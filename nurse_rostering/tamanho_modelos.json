@@ -1,0 +1,281 @@
+[
+ {
+  "inst": "n030w4_H1_WD6-2-9-1",
+  "N": 30,
+  "W": 4,
+  "D": 28,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "FullTime": 12,
+   "HalfTime": 10,
+   "PartTime": 8
+  },
+  "habil": {
+   "3": 2,
+   "2": 15,
+   "1": 13
+  },
+  "dmin": 369,
+  "dopt": 507,
+  "pedidos": 31,
+  "x": 5488,
+  "linhas": 26687,
+  "colunas": 26446,
+  "forb": 6,
+  "capac": 840
+ },
+ {
+  "inst": "n040w4_H0_WD2-0-6-1",
+  "N": 40,
+  "W": 4,
+  "D": 28,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "FullTime": 18,
+   "HalfTime": 12,
+   "PartTime": 10
+  },
+  "habil": {
+   "3": 6,
+   "2": 12,
+   "1": 22
+  },
+  "dmin": 471,
+  "dopt": 635,
+  "pedidos": 97,
+  "x": 7168,
+  "linhas": 36553,
+  "colunas": 37352,
+  "forb": 5,
+  "capac": 1120
+ },
+ {
+  "inst": "n050w4_H0_WD0-4-8-7",
+  "N": 50,
+  "W": 4,
+  "D": 28,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "FullTime": 20,
+   "HalfTime": 12,
+   "PartTime": 18
+  },
+  "habil": {
+   "2": 28,
+   "1": 22
+  },
+  "dmin": 565,
+  "dopt": 812,
+  "pedidos": 100,
+  "x": 8736,
+  "linhas": 44683,
+  "colunas": 45570,
+  "forb": 5,
+  "capac": 1400
+ },
+ {
+  "inst": "n060w4_H1_WD6-1-1-5",
+  "N": 60,
+  "W": 4,
+  "D": 28,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "20Percent": 16,
+   "FullTime": 13,
+   "HalfTime": 10,
+   "PartTime": 21
+  },
+  "habil": {
+   "2": 37,
+   "1": 23
+  },
+  "dmin": 573,
+  "dopt": 881,
+  "pedidos": 99,
+  "x": 10864,
+  "linhas": 58833,
+  "colunas": 58688,
+  "forb": 6,
+  "capac": 1680
+ },
+ {
+  "inst": "n030w8_H1_WD2-7-0-9-3-6-0-6",
+  "N": 30,
+  "W": 8,
+  "D": 56,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "FullTime": 12,
+   "HalfTime": 10,
+   "PartTime": 8
+  },
+  "habil": {
+   "3": 2,
+   "2": 15,
+   "1": 13
+  },
+  "dmin": 681,
+  "dopt": 910,
+  "pedidos": 118,
+  "x": 10976,
+  "linhas": 52983,
+  "colunas": 52502,
+  "forb": 6,
+  "capac": 1680
+ },
+ {
+  "inst": "n040w8_H0_WD0-6-8-9-2-6-6-4",
+  "N": 40,
+  "W": 8,
+  "D": 56,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "FullTime": 18,
+   "HalfTime": 12,
+   "PartTime": 10
+  },
+  "habil": {
+   "3": 6,
+   "2": 12,
+   "1": 22
+  },
+  "dmin": 833,
+  "dopt": 1187,
+  "pedidos": 181,
+  "x": 14336,
+  "linhas": 72585,
+  "colunas": 74184,
+  "forb": 5,
+  "capac": 2240
+ },
+ {
+  "inst": "n050w8_H1_WD1-7-8-5-7-4-1-8",
+  "N": 50,
+  "W": 8,
+  "D": 56,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "FullTime": 20,
+   "HalfTime": 12,
+   "PartTime": 18
+  },
+  "habil": {
+   "2": 28,
+   "1": 22
+  },
+  "dmin": 1110,
+  "dopt": 1702,
+  "pedidos": 224,
+  "x": 17472,
+  "linhas": 88715,
+  "colunas": 90490,
+  "forb": 5,
+  "capac": 2800
+ },
+ {
+  "inst": "n060w8_H0_WD6-2-9-9-0-8-1-3",
+  "N": 60,
+  "W": 8,
+  "D": 56,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "PartTime": 16,
+   "FullTime": 26,
+   "HalfTime": 18
+  },
+  "habil": {
+   "2": 30,
+   "1": 30
+  },
+  "dmin": 1472,
+  "dopt": 1882,
+  "pedidos": 306,
+  "x": 20160,
+  "linhas": 106301,
+  "colunas": 107804,
+  "forb": 5,
+  "capac": 3360
+ },
+ {
+  "inst": "n005w4_H0_WD1-2-3-3",
+  "N": 5,
+  "W": 4,
+  "D": 28,
+  "S": 3,
+  "K": 2,
+  "contratos": {
+   "FullTime": 3,
+   "PartTime": 2
+  },
+  "habil": {
+   "2": 3,
+   "1": 2
+  },
+  "dmin": 94,
+  "dopt": 111,
+  "pedidos": 13,
+  "x": 672,
+  "linhas": 3428,
+  "colunas": 3471,
+  "forb": 3,
+  "capac": 140
+ },
+ {
+  "inst": "n012w8_H0_WD3-5-0-2-0-4-5-2",
+  "N": 12,
+  "W": 8,
+  "D": 56,
+  "S": 4,
+  "K": 2,
+  "contratos": {
+   "FullTime": 6,
+   "PartTime": 6
+  },
+  "habil": {
+   "2": 7,
+   "1": 5
+  },
+  "dmin": 363,
+  "dopt": 424,
+  "pedidos": 50,
+  "x": 4256,
+  "linhas": 21933,
+  "colunas": 22188,
+  "forb": 5,
+  "capac": 672
+ },
+ {
+  "inst": "n021w4_H0_WD5-4-1-2",
+  "N": 21,
+  "W": 4,
+  "D": 28,
+  "S": 4,
+  "K": 4,
+  "contratos": {
+   "FullTime": 3,
+   "PartTime": 11,
+   "HalfTime": 7
+  },
+  "habil": {
+   "3": 3,
+   "2": 8,
+   "1": 10
+  },
+  "dmin": 258,
+  "dopt": 337,
+  "pedidos": 23,
+  "x": 3920,
+  "linhas": 19342,
+  "colunas": 19705,
+  "forb": 5,
+  "capac": 588
+ }
+]

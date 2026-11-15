@@ -1,0 +1,114 @@
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: time limit, feasible solution; objective 1785
+997069 simplex iterations
+1041 branching nodes
+absmipgap=400, relmipgap=0.22409
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: optimal solution; objective 1785
+11 simplex iterations
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: time limit, feasible solution; objective 2435
+635964 simplex iterations
+3 branching nodes
+absmipgap=1730, relmipgap=0.710472
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: optimal solution; objective 2435
+23 simplex iterations
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: time limit, feasible solution; objective 1810
+642503 simplex iterations
+3 branching nodes
+absmipgap=1095, relmipgap=0.604972
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: optimal solution; objective 1810
+27 simplex iterations
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: time limit, feasible solution; objective 8110
+396133 simplex iterations
+1 branching node
+absmipgap=6275, relmipgap=0.773736
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: optimal solution; objective 8110
+39 simplex iterations
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: time limit, feasible solution; objective 4580
+383357 simplex iterations
+1 branching node
+absmipgap=3023.87, relmipgap=0.660233
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: optimal solution; objective 4580
+20 simplex iterations
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: time limit, feasible solution; objective 21655
+306389 simplex iterations
+1 branching node
+absmipgap=20440, relmipgap=0.943894
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: optimal solution; objective 21655
+28 simplex iterations
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: time limit, feasible solution; objective 27065
+343028 simplex iterations
+1 branching node
+absmipgap=24073.3, relmipgap=0.889464
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: optimal solution; objective 27065
+42 simplex iterations
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: time limit, feasible solution; objective 26830
+278845 simplex iterations
+1 branching node
+absmipgap=26114, relmipgap=0.973313
+Gurobi 13.0.3:   lim:time = 300
+  mip:gap = 0
+  tech:threads = 1
+  mip:bestbound = 1
+Gurobi 13.0.3: optimal solution; objective 26830
+46 simplex iterations
+_total_solve_elapsed_time = 2591.45
+

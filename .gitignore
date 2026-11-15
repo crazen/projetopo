@@ -1,0 +1,13 @@
+# ambiente Python (recriar com: pip install highspy swiglpk pandas matplotlib amplpy pypdf python-pptx)
+.venv/
+__pycache__/
+*.pyc
+# dados extraidos (recriar com: cd nurse_rostering && python organizar_dados.py ../dados ../test_datasets_json.zip ../datasets_json.zip)
+dados/
+test_datasets_json/
+# temporarios do solver / AMPL
+*.lp
+*.mps
+*.sol
+*.nl
+ampl.lic

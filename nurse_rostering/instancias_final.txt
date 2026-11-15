@@ -1,0 +1,10 @@
+# Conjunto final: 8 instancias estaticas da literatura (Legrain, Omer e Rosat, GERAD G-2023-02),
+# 30 a 60 enfermeiros, 4 e 8 semanas. Valores de referencia em referencias_literatura.csv.
+n030w4 1 6,2,9,1
+n040w4 0 2,0,6,1
+n050w4 0 0,4,8,7
+n060w4 1 6,1,1,5
+n030w8 1 2,7,0,9,3,6,0,6
+n040w8 0 0,6,8,9,2,6,6,4
+n050w8 1 1,7,8,5,7,4,1,8
+n060w8 0 6,2,9,9,0,8,1,3

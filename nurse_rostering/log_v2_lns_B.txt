@@ -1,0 +1,29 @@
+4 instancias x ['lns'], 300s cada -> v2_lns_B.csv
+
+== n050w4_H0_WD0-4-8-7  lns  semente=1
+Running HiGHS 1.16.0 (git hash: f3f113d): Copyright (c) 2026 under MIT licence terms
+Includes third-party software components, see THIRD_PARTY_NOTICES.md for full details
+    {'custo': 2250, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 39}
+
+== n050w4_H0_WD0-4-8-7  lns  semente=2
+    {'custo': 2415, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 36}
+
+== n040w8_H0_WD0-6-8-9-2-6-6-4  lns  semente=1
+    {'custo': 5090, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.2, 'iteracoes': 37}
+
+== n040w8_H0_WD0-6-8-9-2-6-6-4  lns  semente=2
+    {'custo': 6060, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.1, 'iteracoes': 36}
+
+== n060w4_H1_WD6-1-1-5  lns  semente=1
+    {'custo': 4170, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 299.7, 'iteracoes': 34}
+
+== n060w4_H1_WD6-1-1-5  lns  semente=2
+    {'custo': 4250, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 37}
+
+== n030w8_H1_WD2-7-0-9-3-6-0-6  lns  semente=1
+    {'custo': 2950, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 34}
+
+== n030w8_H1_WD2-7-0-9-3-6-0-6  lns  semente=2
+    {'custo': 2930, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.2, 'iteracoes': 38}
+
+resultados em v2_lns_B.csv

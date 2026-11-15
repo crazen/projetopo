@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><title>Etapa 6 - Comparação exato x aproximado</title>
+<link rel="stylesheet" href="etapa.css"></head><body>
+
+<h1>Escalonamento de Enfermeiros com Regras Trabalhistas:<br>Programação Inteira e Metaheurísticas nas Instâncias do INRC-II</h1>
+<p class="autores">Eduardo Lopes - 168804, Jorge Dourado - 168900</p>
+<p class="etapa">Pesquisa Operacional - UNIFESP/ICT - Etapa 6: Implementação – Método Exato × Métodos Aproximados</p>
+
+<h2>1. Métodos comparados e configuração</h2>
+<p>Comparamos o método exato da Etapa 5 (modelo de PLI no AMPL, resolvido pelo Gurobi 13.0.3) com três métodos aproximados descritos na Etapa 4, todos implementados em Python e com a mesma avaliação incremental do custo: o <b>GRASP</b> com busca local VND e busca local iterada (Feo e Resende, 1995), o <b>Simulated Annealing</b> (SA; Kirkpatrick et al., 1983) e a matheurística <b>LNS</b> do tipo <i>fix-and-optimize</i> (Pisinger e Ropke, 2010), que reotimiza pedaços da escala com o solver livre HiGHS. Todos os métodos rodaram nas mesmas 8 instâncias, com o <b>mesmo limite de 300 s</b>, 1 thread e a mesma máquina (Intel i5-13400, 16 GB). Cada metaheurística foi executada com 2 sementes aleatórias; reportamos o custo médio e o melhor. Todos os custos foram recalculados pelo avaliador independente, e todas as escalas são viáveis, isto é, não violam nenhuma restrição rígida.</p>
+
+<h2>2. Qualidade da solução e tempo</h2>
+<table class="nw">
+<thead>
+<tr><th class="l" rowspan="2">Instância</th><th rowspan="2">Melhor<br>publicado</th><th colspan="2">Exato (Gurobi)</th><th colspan="2">GRASP</th><th colspan="2">Simulated Annealing</th><th colspan="2">LNS</th></tr>
+<tr><th>custo</th><th>dist.</th><th>médio (melhor)</th><th>dist.</th><th>médio (melhor)</th><th>dist.</th><th>médio (melhor)</th><th>dist.</th></tr>
+</thead>
+<tbody>
+<!--LINHAS_COMP-->
+<tr><td class="l">n030w4</td><td>1.670*</td><td><b>1.785</b></td><td>+6,9%</td><td>2.565 (2.555)</td><td>+53,6%</td><td>1.955 (1.945)</td><td>+17,1%</td><td>1.868 (1.830)</td><td>+11,8%</td></tr>
+<tr><td class="l">n040w4</td><td>1.565*</td><td>2.435</td><td>+55,6%</td><td>3.132 (2.985)</td><td>+100,2%</td><td><b>1.998</b> (1.965)</td><td>+27,6%</td><td>2.185 (2.110)</td><td>+39,6%</td></tr>
+<tr><td class="l">n050w4</td><td>1.315*</td><td><b>1.810</b></td><td>+37,6%</td><td>3.425 (3.340)</td><td>+160,5%</td><td>1.912 (1.905)</td><td>+45,4%</td><td>2.332 (2.250)</td><td>+77,4%</td></tr>
+<tr><td class="l">n060w4</td><td>2.450*</td><td>8.110</td><td>+231,0%</td><td>5.142 (5.135)</td><td>+109,9%</td><td><b>3.000</b> (2.955)</td><td>+22,4%</td><td>4.210 (4.170)</td><td>+71,8%</td></tr>
+<tr class="sep"><td class="l">n030w8</td><td>2.010*</td><td>4.580</td><td>+127,9%</td><td>4.812 (4.800)</td><td>+139,4%</td><td><b>2.725</b> (2.675)</td><td>+35,6%</td><td>2.940 (2.930)</td><td>+46,3%</td></tr>
+<tr><td class="l">n040w8</td><td>2.515</td><td>21.655</td><td>+761,0%</td><td>6.845 (6.845)</td><td>+172,2%</td><td><b>4.018</b> (3.975)</td><td>+59,7%</td><td>5.575 (5.090)</td><td>+121,7%</td></tr>
+<tr><td class="l">n050w8</td><td>4.810</td><td>27.065</td><td>+462,7%</td><td>9.710 (9.690)</td><td>+101,9%</td><td><b>6.415</b> (6.365)</td><td>+33,4%</td><td>8.612 (8.480)</td><td>+79,1%</td></tr>
+<tr><td class="l">n060w8</td><td>2.150</td><td>26.830</td><td>+1.147,9%</td><td>9.092 (8.855)</td><td>+322,9%</td><td><b>4.268</b> (4.080)</td><td>+98,5%</td><td>7.218 (7.055)</td><td>+235,7%</td></tr>
+<!--/LINHAS_COMP-->
+</tbody></table>
+<p class="legenda">Tabela 1. Custo das escalas (menor é melhor) e distância ao melhor valor publicado (Legrain e Omer, 2023). Em negrito, o melhor custo médio de cada instância.</p>
+
+<table class="nw">
+<thead><tr><th class="l">Método</th><th>Tempo por execução</th><th>Distância média ao<br>melhor publicado</th><th>Instâncias em que<br>foi o melhor</th><th>Esforço típico em 300 s</th></tr></thead>
+<tbody>
+<!--LINHAS_RESUMO-->
+<tr><td class="l">Exato (Gurobi)</td><td>300 s</td><td>+353,8%</td><td>2 de 8</td><td class="l">branch-and-bound; não provou ótimo em nenhuma</td></tr>
+<tr><td class="l">GRASP-ILS</td><td>300 s</td><td>+145,1%</td><td>0 de 8</td><td class="l">2,1 construções + VND + ILS em média</td></tr>
+<tr><td class="l">Simulated Annealing</td><td>300 s</td><td>+42,5%</td><td>6 de 8</td><td class="l">14,0 milhões de movimentos em média</td></tr>
+<tr><td class="l">LNS (matheurística)</td><td>300 s</td><td>+85,4%</td><td>0 de 8</td><td class="l">36 subproblemas MIP em média</td></tr>
+<!--/LINHAS_RESUMO-->
+</tbody></table>
+<p class="legenda">Tabela 2. Resumo por método, considerando o custo médio de cada metaheurística.</p>
+
+<h2>3. Análise</h2>
+<!--ANALISE6-->
+<p><b>Qualidade.</b> O <i>Simulated Annealing</i> foi o melhor método em 6 das 8 instâncias, com distância média de 42,5% ao melhor valor publicado, contra 85,4% da matheurística LNS, 145,1% do GRASP e 353,8% do método exato. A vantagem cresce com o tamanho do problema: nas instâncias de 8 semanas, as escalas do SA custam de 1,7 vezes (n030w8) a 6,3 vezes (n060w8) menos que as do Gurobi. O método exato venceu nas instâncias n030w4 e n050w4, ambas de 4 semanas. Na n030w4 sua escala ficou a 6,9% do ótimo, à frente do LNS (11,8%) e do SA (17,1%). Isso mostra o comportamento esperado: quando o modelo é pequeno, o solver aproveita sua busca sistemática; quando o modelo cresce (até 108 mil variáveis), ele não consegue nem explorar bem o nó raiz em 300 s.</p>
+<p><b>Por que o SA vai melhor.</b> Cada passo do SA avalia <i>um</i> movimento aleatório em microssegundos, graças à avaliação incremental, e o método fez em média 14 milhões de movimentos por execução. O GRASP, ao contrário, precisa varrer vizinhanças inteiras no VND para garantir um ótimo local. Mesmo com o VND local na fase de busca local iterada, que deixou essa fase 3 a 4 vezes mais rápida, ele completou só cerca de 2 construções em 300 s. A aceitação de pioras do SA também permite escapar de ótimos locais que prendem a busca local. A matheurística LNS ficou em segundo lugar: ela parte de uma escala do GRASP obtida em 60 s e a melhora bastante (na n030w8 chega a 2.940, contra 4.812 do GRASP com os 300 s completos), mas cada subproblema resolvido pelo solver leva segundos, o que limita a busca a cerca de 36 reotimizações por execução.</p>
+<p><b>Tempo e robustez.</b> Todos os métodos usaram o mesmo limite de 300 s. As metaheurísticas são métodos “a qualquer tempo”: têm uma escala viável disponível em poucos segundos e a melhoram continuamente, enquanto o Gurobi depende das heurísticas internas para achar boas incumbentes. A diferença entre o custo médio e o melhor das duas sementes ficou abaixo de 3% em 18 dos 24 casos, com máximo de 9,5% (LNS na n040w8), o que indica resultados razoavelmente estáveis, embora 2 sementes não permitam um teste estatístico formal.</p>
+<p><b>Limites.</b> Mesmo o SA ainda fica de 17% a 98% acima do melhor valor publicado. Esses valores vêm de um <i>branch-and-price</i> especializado, executado por até horas por instância (Legrain e Omer, 2023). O resultado mostra que, com recursos modestos (5 minutos, 1 núcleo, Python), as metaheurísticas são a escolha prática para escalas de 8 semanas, enquanto o modelo exato é competitivo apenas nas instâncias menores.</p>
+<!--/ANALISE6-->
+
+<h2>Referências</h2>
+<div class="ref">
+<p>Feo, T. A. e Resende, M. G. C. (1995). Greedy randomized adaptive search procedures. <i>Journal of Global Optimization</i>, 6(2):109–133.</p>
+<p>Kirkpatrick, S., Gelatt, C. D. e Vecchi, M. P. (1983). Optimization by simulated annealing. <i>Science</i>, 220(4598):671–680.</p>
+<p>Legrain, A. e Omer, J. (2023). A dedicated pricing algorithm to solve a large family of nurse scheduling problems with branch-and-price. <i>Les Cahiers du GERAD</i>, G-2023-02, HEC Montréal.</p>
+<p>Pisinger, D. e Ropke, S. (2010). Large neighborhood search. In Gendreau, M. e Potvin, J.-Y. (Eds.), <i>Handbook of Metaheuristics</i>, 2. ed., p. 399–419. Springer.</p>
+</div>
+</body></html>
