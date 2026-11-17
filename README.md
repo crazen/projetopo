@@ -7,6 +7,7 @@ modelo de Programação Linear Inteira (AMPL + Gurobi) comparado com GRASP, Simu
 
 - `nurse_rostering/` — código (modelo `nurse.mod`, `nucleo.py`, `grasp.py`, `sa.py`, `fo.py`, `experimentos.py`, `testes.py`) e resultados (`comparacao_final.csv`). Ver `nurse_rostering/LEIAME.md`.
 - `entregas/` — PDFs das Etapas 1–6 e 8 (artigo SBPO), apresentação da Etapa 7 (`.pptx`) e guia de estudo. Fontes em `entregas/fonte/`.
+- `entregas/explicacao_para_estudo.md` — explicação em linguagem simples de cada método, glossário de siglas (H1–H4, S1–S7, N1–N4, T0, Tf…), por que cada método foi melhor ou pior, e preparação para a reunião com o professor.
 - `*.zip` — instâncias oficiais do INRC-II (JSON).
 - `CLAUDE.md` — contexto completo do projeto, decisões e resultados.
 

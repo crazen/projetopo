@@ -131,7 +131,7 @@ Distância média ao melhor publicado: Gurobi +354%, GRASP +146%, SA +22,3%, **S
 
 ### 8.2b Entregas geradas (`entregas/`)
 
-PDFs das Etapas 1–6 e 8 (HTML em `entregas/fonte/` → `python gerar_pdfs.py`, acha Chrome no Windows ou Linux), `etapa7_apresentacao.pptx` (`python gerar_slides.py`), `guia_de_estudo.pdf`. Tabelas preenchidas por `preencher_tabelas.py` a partir de `comparacao_final.csv`. Textos revisados em 17/11/2026 para GRASP/SA/F&O e para o diagnóstico do PL. Falta: e-mails dos autores no artigo (`[e-mail]`).
+PDFs das Etapas 1–6 e 8 (HTML em `entregas/fonte/` → `python gerar_pdfs.py`, acha Chrome no Windows ou Linux), `etapa7_apresentacao.pptx` (`python gerar_slides.py`), `guia_de_estudo.pdf`. Tabelas preenchidas por `preencher_tabelas.py` a partir de `comparacao_final.csv`. Textos revisados em 17/11/2026 para GRASP/SA/F&O e para o diagnóstico do PL. Falta: e-mails dos autores no artigo (`[e-mail]`). `entregas/explicacao_para_estudo.md` (17/11/2026) é a cópia do doc de estudo do claude.ai (glossário, passo a passo de cada método, por que cada um foi melhor, relaxação/provar ótimos/piorar para melhorar, perguntas e teste rápido, pontos do professor). `nurse_rostering.zip` refeito com o código atual (para o Colab).
 
 ### 8.3 Resultados antigos (referência)
 
@@ -166,6 +166,7 @@ Com 120 s, o LNS chegou a 2240 na n021w4.
 
 ## 9. Próximos passos
 
+0. Reunião com o professor (quarta, 18/11/2026): ele pediu mais tempo para o Gurobi provar ótimos e quer discutir representação, vizinhanças, penalidades dinâmicas e empates na função objetivo. Ver a seção "Para a reunião" de `entregas/explicacao_para_estudo.md`.
 1. (Opcional, recomendado) Rodar as heurísticas no PC: `python rodar_experimentos.py --processos 6` (~1 h; apague antes `resultados/v3_*` para refazer). Depois revisar a frase sobre a máquina nas Etapas 6 e 8 e os números citados nos textos.
 2. (Opcional) Rodar `rodar_final.run` com `CFG = 'ajustado'` e decidir se entra na Etapa 5.
 3. Revisar os documentos e os slides e preencher os e-mails no artigo.
