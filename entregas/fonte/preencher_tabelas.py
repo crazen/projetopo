@@ -97,14 +97,14 @@ inst.append('</tbody></table><p class="legenda">Tabela 1. Instâncias. LB/UB pub
             'superior publicados por Legrain e Omer [2023]; LB = UB indica ótimo provado.</p>')
 inserir("etapa8_artigo_sbpo.html", "TAB_INSTANCIAS", "\n".join(inst))
 
-ex = ['<table class="nw"><thead><tr><th class="l">Instância</th><th>Custo</th><th>LB Gurobi</th><th>Gap</th>'
+ex = ['<table class="nw"><thead><tr><th class="l">Instância</th><th>Custo</th><th>LB Gurobi</th><th>Limite PL</th><th>Gap</th>'
       '<th>Tempo (s)</th><th>Dist. UB publ.</th><th>HiGHS: custo</th><th>Dist. UB publ.</th></tr></thead><tbody>']
 for k, (i, r) in enumerate(T.iterrows()):
     sep = ' class="sep"' if k == 4 else ""
-    ex.append(f'<tr{sep}><td class="l">{i}</td><td>{f(r.gurobi)}</td><td>{f(r.gurobi_lb)}</td><td>{f(r.gurobi_gap, 1)}%</td>'
+    ex.append(f'<tr{sep}><td class="l">{i}</td><td>{f(r.gurobi)}</td><td>{f(r.gurobi_lb)}</td><td>{f(r.pl)}</td><td>{f(r.gurobi_gap, 1)}%</td>'
               f'<td>{f(r.gurobi_t)}</td><td>{pct(r.dev_gurobi)}</td><td>{f(r.highs)}</td><td>{pct(r.dev_highs)}</td></tr>')
 ex.append('</tbody></table><p class="legenda">Tabela 2. Método exato (modelo da Seção 4), 300 s, 1 thread. '
-          'Nenhuma instância teve a otimalidade provada.</p>')
+          'Limite PL: valor da relaxação linear do modelo. Nenhuma instância teve a otimalidade provada.</p>')
 inserir("etapa8_artigo_sbpo.html", "TAB_EXATO", "\n".join(ex))
 
 cp = ['<table class="nw"><thead><tr><th class="l" rowspan="2">Instância</th><th rowspan="2">UB publ.</th>'

@@ -31,6 +31,7 @@ Todas as entregas precisam de referências reais e conhecidas, citadas no texto 
 - **Decisão:** trocar para escala individual com regras trabalhistas, ou seja, **Nurse Rostering com as instâncias reais do INRC-II** (Second International Nurse Rostering Competition). Critério da dupla: o problema não pode ser trivial (o solver não deve resolver em menos de 30 s), precisa ser bem estabelecido, com referências reais, e precisa rodar modelos matemáticos de verdade.
 - **Pendência:** as Etapas 1 a 4 precisam ser reescritas para o tema novo. Verificar com o professor e o orientador o que precisa ser reentregue.
 - **Horizonte estático:** resolvemos o horizonte inteiro (4 ou 8 semanas) de uma vez, com toda a demanda conhecida. A competição original é semana a semana. Por isso os custos não se comparam ao ranking oficial, mas se comparam à literatura da versão estática (seção 6).
+- **Crítica do professor à Etapa 4 (16/11/2026):** a matheurística chamada "LNS (fix-and-optimize)" não era um Fix-and-Optimize (sorteava pedaços: é uma LNS). Corrigido com `fo.py` (decomposições fixas percorridas sistematicamente; Helber e Sahling, 2010) e textos revisados.
 - **Uso de IA:** a disciplina permite IA e qualquer ferramenta. A dupla precisa entender o problema, o modelo, as heurísticas e a solução para a apresentação.
 
 ## 4. O problema
@@ -70,6 +71,8 @@ Atribuir a cada enfermeiro, em cada dia, um turno (Early, Day, Late, Night) com 
 - **Legrain, Omer e Rosat (2020),** "A rotation-based branch-and-price approach for the nurse scheduling problem", Mathematical Programming Computation 12:417–450. É outro artigo (rotações), anterior.
 - **Ceschia, Guido e Schaerf (2020),** "Solving the static INRC-II nurse rostering problem by simulated annealing based on large neighborhoods", Annals of OR 288(1):95–113. SA na mesma versão estática; justifica o nosso SA.
 - **Ceschia et al. (2019),** "The Second International Nurse Rostering Competition", Annals of OR 274(1–2):171–186 (versão publicada da especificação).
+- **Helber e Sahling (2010),** "A fix-and-optimize approach for the multi-level capacitated lot sizing problem", International Journal of Production Economics 123(2):247–256. Base do F&O (conferido no RePEc).
+- **Lam, Pitrou e Seibert (2015),** "Numba: a LLVM-based Python JIT compiler", LLVM-HPC'15. Citado no artigo pelo numba.
 - Lista completa e conferida de referências: ver `entregas/fonte/etapa8_artigo_sbpo.html`.
 - **Chaves, Resende et al.,** "A Random-Key Optimizer for Combinatorial Optimization" (RKO), arXiv:2411.04293, Journal of Heuristics 2025. É a base de um possível 4º método.
 - **Da revisão anterior** (reaproveitar o que couber, conferindo): Strandmark, Qu e Curtois (2020); Santos et al. (2016, MIPLIB nursesched); Man Ngoo et al. (2022); Faasse (2024); Beasley (2024, local branching); Reyes e Araya (2021, GRASP); Vasko et al. (2025).
@@ -80,46 +83,55 @@ Atribuir a cada enfermeiro, em cada dia, um turno (Early, Day, Late, Night) com 
 |---|---|
 | `nurse.mod` | Modelo PLI em AMPL. Variável x[n,d,s,k] binária; restrições H1–H4; S1–S7 linearizadas (janelas para máximos, padrões de sequência para mínimos) |
 | `gen_dat.py` | JSON → `.dat` do AMPL |
-| `rodar.run` / `rodar_final.run` | AMPL + Gurobi: 9 instâncias de teste (60 s) / 8 instâncias finais (300 s). Grava `resultados_ampl*.csv`. Depois de resolver, fixa x e resolve de novo para obter o custo real da escala |
+| `rodar.run` / `rodar_final.run` | AMPL + Gurobi: 9 instâncias de teste (60 s) / 8 instâncias finais (300 s). `rodar_final.run` tem `CFG = 'padrao'` (→ `resultados_ampl_final.csv`) ou `'ajustado'` (`method=2 mipfocus=1 norelheurtime=60` → `resultados_ampl_ajustado.csv`). Depois de resolver, fixa x e resolve de novo para obter o custo real da escala |
 | `inrc2.py` | Leitor das instâncias e avaliador (mesmo cálculo do validador oficial) |
-| `exato.py` | Mesmo `nurse.mod` via tradutor GLPK + HiGHS (sem licença) |
-| `grasp.py` | GRASP: construção dia a dia com RCL (alpha), VND com N1 troca, N2 swap, N3 bloco de um enfermeiro e N4 swap de bloco, e fase ILS (perturbação + **VND local**: após perturbar, só revisita enfermeiros/dias afetados com margem de 3 dias; alterado em 14/11/2026 com autorização, ILS 3–4× mais rápido) |
-| `sa.py` | Simulated Annealing (criado em 14/11/2026): reaproveita Estado e movimentos do GRASP; Metropolis; T cai geometricamente com o tempo, T0 = 40, Tf = 2 (calibrado só nas instâncias de teste) |
-| `consolidar.py` | Junta Gurobi + HiGHS + heurísticas v2 (`v2_*.csv`, inclusive `v2_seed_*.csv`) em `comparacao_final.csv` (média, melhor, desvio-padrão, nº de sementes) e gera `entregas/fonte/fig_*.png` |
-| `rodar_sementes.py` | Sementes extras das heurísticas (padrão: 3 a 5, 300 s, 6 processos, ~60 min); retoma se interrompido; no fim regenera tabelas, figuras, PDFs e slides. Depois, revisar os textos das análises (números e "2 sementes") |
-| `custo_rapido.py` | Custo de um enfermeiro em uma passada (usado pelo GRASP) |
-| `lns.py` | Matheurística fix-and-optimize: parte do GRASP, fixa x fora de uma vizinhança (grupo de enfermeiros ou janela de dias) e o HiGHS reotimiza, com warm start e vizinhança adaptativa |
-| `experimentos.py` | Roda exato, GRASP, SA (`--metodos ...,sa`) e LNS numa lista de instâncias e grava CSV linha a linha, com colunas de gap contra a literatura |
-| `testes.py` | Modelo × avaliador (referências e escalas aleatórias), custo rápido × avaliador, GRASP incremental × avaliador. Deve terminar em `TUDO CERTO` |
+| `exato.py` | Mesmo `nurse.mod` via tradutor GLPK + HiGHS (sem licença); `ModeloPLI` também é o motor do F&O |
+| `relaxacao.py` | Limite da relaxação linear do modelo → `relaxacao_linear.csv` (PL = 20%–70% do ótimo: formulação fraca) |
+| `custo_rapido.py` | Custo de um enfermeiro em Python (usado pela construção do GRASP) |
+| `nucleo.py` | (16/11/2026) Mesmo custo + movimentos N1–N4, SA e VND compilados com numba (~1 milhão de movimentos/s). Testado contra `custo_rapido` e o avaliador |
+| `grasp.py` | (16/11/2026) GRASP clássico: construção dia a dia com RCL (alpha = 0,15) + VND completo (N1 troca, N2 swap, N3 bloco, N4 swap de bloco). Sem ILS (a versão antiga tinha ILS porque só fazia 2 iterações) |
+| `sa.py` | Simulated Annealing sobre o `nucleo.py`; Metropolis; T cai geometricamente com o tempo, T0 = 40, Tf = 2 (calibrados em `calibracao/`, 4 instâncias fora do conjunto final) |
+| `fo.py` | (16/11/2026) Matheurística **Fix-and-Optimize** (Helber e Sahling, 2010): SA na 1ª metade do tempo, depois decomposições fixas (janelas de 7 dias com todos os enfermeiros, 50% de sobreposição; pares de enfermeiros com mesmas habilidades/contrato) resolvidas em sequência pelo HiGHS (até 30 s cada) até uma passada inteira sem melhora; então L += 7, k += 2. Substituiu `lns.py` |
+| `experimentos.py` | Roda exato, GRASP, SA e F&O (`--metodos exato,grasp,sa,fo`) numa lista de instâncias; CSV linha a linha com gap contra a literatura e `tempo_melhor_s` |
+| `rodar_experimentos.py` | Roda GRASP, SA e F&O nas 8 instâncias finais em vários processos de 1 thread → `resultados/v3_*.csv`; retoma se interrompido; no fim chama consolidar, preencher_tabelas, gerar_pdfs, gerar_slides |
+| `consolidar.py` | Junta Gurobi, HiGHS, relaxação linear e `resultados/v3_*.csv` em `comparacao_final.csv` e gera `entregas/fonte/fig_*.png` |
+| `testes.py` | Modelo × avaliador, custo rápido × avaliador, núcleo numba × custo rápido, GRASP/SA/F&O curtos. Deve terminar em `TUDO CERTO` |
 | `instancias_final.txt` | Conjunto final: n030w4, n040w4, n050w4, n060w4, n030w8, n040w8, n050w8, n060w8 (combinações da literatura) |
+| `resultados_antigos/` | Resultados da versão 2 (GRASP-ILS/SA em Python puro e a "LNS"); só histórico |
 
 **Cuidados técnicos:**
 - Quando o solver para por tempo, o objetivo reportado pode ser maior que o custo real, porque as variáveis de penalidade da solução incumbente não ficam apertadas. O custo e o gap vêm do avaliador.
 - O HiGHS não aceita mudar `threads` depois da primeira execução; isso é definido no construtor do `ModeloPLI`.
 - Todo resultado só vale com `viavel=True`.
+- Na primeira execução o numba compila o `nucleo.py` (cache em `__pycache__`).
 
 ## 8. Resultados até agora
 
-### 8.1 Resultados finais (14/11/2026, i5-13400 local, 300 s, 1 thread)
+### 8.1 Resultados finais v3 (16–17/11/2026, 300 s, 1 thread)
 
-Arquivos: `nurse_rostering/comparacao_final.csv` (tabela por instância), `resultados_ampl_final.csv` (Gurobi), `resultados_v2.csv` (GRASP v2, SA e LNS, 2 sementes, 6 processos em paralelo), `final_*.csv` (só as linhas `exato` = HiGHS valem; GRASP/LNS desses arquivos são da versão antiga).
+Gurobi: i5-13400 local (`resultados_ampl_final.csv`, CFG padrão). Heurísticas: 3 sementes, servidor Xeon 2,1 GHz com 2 processos (mais lento por núcleo que o i5 — se rodar de novo no PC com `rodar_experimentos.py --processos 6`, trocar a frase sobre a máquina nas Etapas 6 e 8). Arquivos: `comparacao_final.csv`, `resultados/v3_*.csv`, `relaxacao_linear.csv`.
 
-| Instância | Melhor publ. | Gurobi (gap) | GRASP | SA | LNS |
-|---|---|---|---|---|---|
-| n030w4 | 1670* | **1785** (22%) | 2565 | 1955 | 1868 |
-| n040w4 | 1565* | 2435 (71%) | 3132 | **1998** | 2185 |
-| n050w4 | 1315* | **1810** (61%) | 3425 | 1912 | 2332 |
-| n060w4 | 2450* | 8110 (77%) | 5142 | **3000** | 4210 |
-| n030w8 | 2010* | 4580 (66%) | 4812 | **2725** | 2940 |
-| n040w8 | 2515 | 21655 (94%) | 6845 | **4018** | 5575 |
-| n050w8 | 4810 | 27065 (89%) | 9710 | **6415** | 8612 |
-| n060w8 | 2150 | 26830 (97%) | 9092 | **4268** | 7218 |
+| Instância | Melhor publ. | PL | Gurobi (gap) | GRASP | SA | SA+F&O |
+|---|---|---|---|---|---|---|
+| n030w4 | 1670* | 812 | 1785 (22%) | 2868 | 1792 | **1752** |
+| n040w4 | 1565* | 319 | 2435 (71%) | 3340 | 1830 | **1740** |
+| n050w4 | 1315* | 545 | 1810 (61%) | 3477 | 1595 | **1530** |
+| n060w4 | 2450* | 1246 | 8110 (77%) | 5193 | 2800 | **2797** |
+| n030w8 | 2010* | 1402 | 4580 (66%) | 4885 | 2298 | **2180** |
+| n040w8 | 2515 | 1073 | 21655 (94%) | 7132 | 3322 | **3193** |
+| n050w8 | 4810 | 2401 | 27065 (89%) | 9585 | 5538 | **5352** |
+| n060w8 | 2150 | 631 | 26830 (97%) | 8187 | 3383 | **3122** |
 
-Heurísticas: média de 2 sementes. Distância média ao melhor publicado: Gurobi +354%, GRASP +145%, **SA +42,5%** (vence 6/8), LNS +85%. Gurobi não provou ótimo em nenhuma.
+Distância média ao melhor publicado: Gurobi +354%, GRASP +146%, SA +22,3%, **SA+F&O +17,3%** (vence 8/8; n060w4 empate prático com SA). GRASP ~209 iterações, SA ~250 milhões de movimentos, F&O ~68 subproblemas (142 na n030w8, 12 na n060w8). Calibração 1200 s (n040w4 H2, ótimo 1750): SA 1945 (estagna), SA+F&O 1880.
 
-### 8.2 Entregas geradas (`entregas/`)
+### 8.2 Diagnóstico do método exato (Etapa 5)
 
-PDFs das Etapas 1–6 e 8 (HTML em `entregas/fonte/` → `python gerar_pdfs.py`), `etapa7_apresentacao.pptx` (`python gerar_slides.py`, roteiro nas anotações), `guia_de_estudo.pdf`. Tabelas preenchidas por `preencher_tabelas.py` a partir de `comparacao_final.csv`. Falta: e-mails dos autores no artigo (`[e-mail]`).
+- Não é bug: modelo × avaliador batem (testes). A relaxação linear dá só 20%–70% do ótimo (`relaxacao_linear.csv`); o log do Gurobi mostra 280 mil–1 milhão de iterações do simplex e 1–3 nós em 300 s (exceto n030w4, 1041 nós). Por isso o resultado "salta" (n060w4, n060w8): depende da heurística interna do Gurobi.
+- `rodar_final.run` com `CFG = 'ajustado'` (barreira, mipfocus=1, norelheurtime=60) ainda **não foi rodado**; se rodar, `consolidar.py` lê `resultados_ampl_ajustado.csv` (colunas gurobi_aj_*), mas os textos/tabelas ainda não usam.
+
+### 8.2b Entregas geradas (`entregas/`)
+
+PDFs das Etapas 1–6 e 8 (HTML em `entregas/fonte/` → `python gerar_pdfs.py`, acha Chrome no Windows ou Linux), `etapa7_apresentacao.pptx` (`python gerar_slides.py`), `guia_de_estudo.pdf`. Tabelas preenchidas por `preencher_tabelas.py` a partir de `comparacao_final.csv`. Textos revisados em 17/11/2026 para GRASP/SA/F&O e para o diagnóstico do PL. Falta: e-mails dos autores no artigo (`[e-mail]`).
 
 ### 8.3 Resultados antigos (referência)
 
@@ -154,8 +166,9 @@ Com 120 s, o LNS chegou a 2240 na n021w4.
 
 ## 9. Próximos passos
 
-1. ~~Rodar conjunto final, Gurobi, tabela da Etapa 5, reescrever Etapas 1–4~~ (feito em 14/11/2026).
-2. Revisar os documentos e os slides (abrir o .pptx; não havia PowerPoint para conferir o visual) e preencher os e-mails no artigo.
-3. Opcional: mais sementes / mais instâncias; SA + LNS (SA como solução inicial); RKO foi descartado por ser complexo demais para a disciplina.
+1. (Opcional, recomendado) Rodar as heurísticas no PC: `python rodar_experimentos.py --processos 6` (~1 h; apague antes `resultados/v3_*` para refazer). Depois revisar a frase sobre a máquina nas Etapas 6 e 8 e os números citados nos textos.
+2. (Opcional) Rodar `rodar_final.run` com `CFG = 'ajustado'` e decidir se entra na Etapa 5.
+3. Revisar os documentos e os slides e preencher os e-mails no artigo.
+4. Ideias: subproblemas do F&O montados só com as variáveis livres (mais rápido nas instâncias grandes); calibrar o resfriamento do SA com o tempo; mais sementes e as 40 instâncias.
 
-**Regras para o Claude:** não alterar `grasp.py`, `lns.py` ou `nurse.mod` sem perguntar. Rodar `testes.py` depois de qualquer mudança. Comparar métodos sempre com o mesmo tempo e na mesma máquina.
+**Regras para o Claude:** não alterar `nucleo.py`, `grasp.py`, `sa.py`, `fo.py` ou `nurse.mod` sem perguntar. Rodar `testes.py` depois de qualquer mudança. Comparar métodos sempre com o mesmo tempo e na mesma máquina.

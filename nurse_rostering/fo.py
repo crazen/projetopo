@@ -61,14 +61,16 @@ def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, 
        verbose=True, sched_inicial=None):
     t0 = time.time(); prazo = t0 + limite
     # ---- solucao inicial
+    historico = []
     if sched_inicial is None:
         r0 = sa(inst, limite=frac_inicial * limite, semente=semente, verbose=False)
         atual = r0["sched"]
+        historico = list(r0["historico"])     # convergencia da fase SA (mesmo relogio, comeca em t0)
     else:
         atual = sched_inicial
     hard, _, custo = evaluate(inst, atual)
     custo_ini = custo
-    historico = [(round(time.time() - t0, 2), custo)]
+    historico.append((round(time.time() - t0, 2), custo))
     if verbose:
         print(f"  inicial: custo={custo} viavel={is_feasible(hard)} ({time.time() - t0:.1f}s)", flush=True)
     m = ModeloPLI(inst, threads=threads)

@@ -16,8 +16,10 @@ Saidas:
 """
 import glob, json, os
 import pandas as pd
+import logging
 import matplotlib
 matplotlib.use("Agg")
+logging.getLogger("matplotlib.font_manager").setLevel(logging.ERROR)   # sem Times New Roman: usa DejaVu Serif
 import matplotlib.pyplot as plt
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
@@ -124,15 +126,14 @@ def fig_convergencia(inst="n040w8", limite=300):
     plt.rcParams["font.family"] = ["Times New Roman", "DejaVu Serif"]
     fig, ax = plt.subplots(figsize=(6.4, 3.2), dpi=200)
     fig.patch.set_facecolor("#fcfcfb"); estilo(ax)
-    teto = 0
+    teto = 0; finais = []
     for m in METODOS:
         rot = ROTULO[m]
         k = next(k for k in conv if k.startswith(inst) and k.endswith(f"|{m}|1"))
         pts = [(t_, c) for t_, c in conv[k] if c != float("inf") and c < 10000]   # so o trecho viavel
         xs = [p[0] for p in pts] + [limite]; ys = [p[1] for p in pts] + [pts[-1][1]]
         ax.step(xs, ys, where="post", color=COR[rot], linewidth=2, label=rot)
-        ax.annotate(f"{rot}  {ys[-1]:.0f}", (limite, ys[-1]), xytext=(4, 0), textcoords="offset points",
-                    va="center", fontsize=9, color=TXT)
+        finais.append((ys[-1], rot))
         teto = max(teto, ys[min(len(ys) - 1, max(1, len(ys) // 8))])
     lit = pd.read_csv(os.path.join(AQUI, "referencias_literatura.csv"))
     ub = lit[lit.instancia.str.startswith(inst)].ub_literatura.iloc[0]
@@ -141,12 +142,18 @@ def fig_convergencia(inst="n040w8", limite=300):
     ax.axhline(ub, color=TXT2, linewidth=0.8, linestyle=(0, (3, 2)))
     ax.annotate(f"melhor publicado {ub:.0f}", (5, ub), xytext=(0, 3), textcoords="offset points", fontsize=8.5, color=TXT2)
     ax.set_ylim(ub * 0.95, min(teto * 1.05, g * 1.05))
-    ax.annotate(f"Gurobi (300 s): {g:.0f}, fora da escala", (limite / 2, ax.get_ylim()[1]), xytext=(0, -10),
-                textcoords="offset points", fontsize=8.5, color=TXT2, ha="center")
+    # rotulos do valor final, afastados para nao se sobreporem
+    y0, y1 = ax.get_ylim(); sep = 0.045 * (y1 - y0); ult = None
+    for y, rot in sorted(finais):
+        yl = y if ult is None else max(y, ult + sep); ult = yl
+        ax.annotate(f"{rot}  {y:.0f}", (limite, y), xytext=(limite + 4, yl), textcoords="data",
+                    va="center", fontsize=9, color=TXT, annotation_clip=False)
+    ax.set_title(f"{inst} (semente 1). Gurobi em 300 s: {g:.0f}, fora da escala", loc="left", fontsize=9, color=TXT2)
     ax.set_xlim(0, limite); ax.set_xlabel("tempo (s)", color=TXT2, fontsize=9)
     ax.set_ylabel("melhor custo encontrado", color=TXT2, fontsize=9)
-    ax.legend(loc="upper right", fontsize=8.5, frameon=True, facecolor="#fcfcfb", edgecolor=GRADE)
-    fig.tight_layout(rect=(0, 0, 0.9, 1))
+    ax.legend(loc="lower left", bbox_to_anchor=(0.01, 0.12), fontsize=8.5, frameon=True, facecolor="#fcfcfb",
+              edgecolor=GRADE)
+    fig.tight_layout(rect=(0, 0, 0.86, 1))
     fig.savefig(os.path.join(FIG, "fig_convergencia.png"), facecolor=fig.get_facecolor())
     plt.close(fig)
 

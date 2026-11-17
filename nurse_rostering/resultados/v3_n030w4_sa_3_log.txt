@@ -1,0 +1,6 @@
+1 instancias x ['sa'], 300s cada -> /home/claude/projetopo/nurse_rostering/resultados/v3_n030w4_sa_3.csv
+
+== n030w4_H1_WD6-2-9-1  sa  semente=3
+    {'custo': 1820, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 262060000}
+
+resultados em /home/claude/projetopo/nurse_rostering/resultados/v3_n030w4_sa_3.csv

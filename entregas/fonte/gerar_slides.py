@@ -339,12 +339,13 @@ melhor_metodo = {}
 for i, r in T.iterrows():
     vals = {"Gurobi": r.gurobi, "GRASP": r.grasp_medio, "SA": r.sa_medio, "SA+F&O": r.fo_medio}
     melhor_metodo[i] = min(vals, key=vals.get)
-sl = slide("Comparação: mesmo tempo (300 s), mesma máquina", secao="Resultados", notas=(
-    "(~1 min 30 s) Esta é a tabela principal. Custo médio de " + str(int(T.n_sem.min())) + " sementes para as heurísticas, 300 segundos, mesma "
-    "máquina. Em verde, o melhor de cada linha. " +
+sl = slide("Comparação: mesmo tempo (300 s), 1 thread", secao="Resultados", notas=(
+    "(~1 min 30 s) Esta é a tabela principal. Custo médio de " + str(int(T.n_sem.min())) + " sementes para as heurísticas, 300 segundos, "
+    "1 thread. Em verde, o melhor de cada linha. " +
     "; ".join(f"{i}: melhor = {m}" for i, m in melhor_metodo.items()) + ". "
-    "A leitura geral: o Gurobi só compete nas instâncias pequenas de 4 semanas; nas de 8 semanas as heurísticas são "
-    "muito melhores, e o Simulated Annealing é o método mais forte na maioria das instâncias."))
+    "A leitura geral: o Gurobi só compete na menor instância; o GRASP para em ótimos locais ruins; o Simulated "
+    "Annealing chega perto; e o SA seguido do Fix-and-Optimize, que usa o próprio modelo de PLI em pedaços, é o "
+    "melhor em todas as instâncias. Detalhe honesto: as heurísticas rodaram num servidor mais lento que o PC do Gurobi."))
 linhas = [["Instância", "Gurobi", "GRASP", "SA", "SA+F&O", "Melhor publ."]]
 cols = ["gurobi", "grasp_medio", "sa_medio", "fo_medio"]
 for i, r in T.iterrows():
@@ -365,27 +366,31 @@ texto(sl, Cm(21), Cm(3.4), Cm(11.8), Cm(13.5), [
 # ------------------------------------------------------------------ 12. graficos
 sl = slide("Distância ao ótimo e convergência", secao="Resultados", notas=(
     "(~1 min) À esquerda, cada ponto é a razão entre o custo do método e o melhor valor publicado, em escala log: "
-    "1 é o ótimo. O Gurobi (quadrado azul) se afasta muito nas instâncias de 8 semanas, enquanto o SA fica sempre "
-    "mais perto. À direita, a evolução do melhor custo ao longo dos 5 minutos numa instância de 8 semanas: o SA desce "
-    "rápido e continua melhorando até o fim, enquanto o GRASP e o LNS estabilizam mais acima."))
+    "1 é o ótimo. O Gurobi (quadrado azul) se afasta muito nas instâncias de 8 semanas, o GRASP fica entre 2 e 4 "
+    "vezes o ótimo, e o SA e o SA + F&O ficam colados perto de 1. À direita, a evolução do melhor custo na n040w8: o "
+    "GRASP estagna cedo; o SA desce até o fim; o SA + F&O faz SA nos primeiros 150 segundos e depois o F&O continua "
+    "descendo em degraus, cada degrau é um subproblema resolvido pelo solver."))
 imagem(sl, "fig_gap.png", Cm(0.8), Cm(3.3), w=Cm(16.2))
 imagem(sl, "fig_convergencia.png", Cm(17.0), Cm(4.0), w=Cm(16.2))
 
 # ------------------------------------------------------------------ 13. conclusoes
 sl = slide("Conclusões", secao="Conclusões", notas=(
-    "(~1 min 15 s) Resumindo: o modelo compacto é correto e validado, mas com 5 minutos o Gurobi não resolve as "
-    "instâncias reais e se perde nas de 8 semanas. As metaheurísticas, com avaliação incremental, encontram escalas "
-    "muito melhores no mesmo tempo, e o Simulated Annealing foi o mais forte. Mesmo assim ainda há distância para "
-    "o ótimo publicado, que usa branch-and-price e horas de CPU. Como próximos passos: mais sementes e todas as 40 "
-    "instâncias, combinar SA e LNS, e explorar geração de colunas. Obrigado, ficamos à disposição para perguntas."))
+    "(~1 min 15 s) Resumindo: o modelo compacto é correto e validado, mas tem relaxação linear fraca, e com 5 "
+    "minutos o Gurobi não resolve as instâncias reais. As metaheurísticas, com avaliação incremental compilada, "
+    "encontram escalas muito melhores no mesmo tempo. O melhor método foi o SA seguido do Fix-and-Optimize, que usa "
+    "o próprio modelo para resolver pedaços pequenos: o modelo exato, ruim sozinho, é ótimo como componente. Ainda "
+    "há distância para o ótimo publicado, que usa branch-and-price e horas de CPU. Próximos passos: mais sementes e "
+    "as 40 instâncias, subproblemas menores para acelerar o F&O, e geração de colunas. Obrigado!"))
 texto(sl, Cm(1.5), Cm(3.4), Cm(31), Cm(14), [
-    ("Modelo compacto de PLI correto (validado contra o avaliador oficial), mas em 300 s o Gurobi não fecha "
-     "nenhuma instância e se perde nas de 8 semanas", {"bullet": True}),
-    ("Metaheurísticas com avaliação incremental encontram escalas muito melhores no mesmo tempo", {"bullet": True}),
-    (f"Simulated Annealing: melhor método em {vit.get('SA', 0)} de 8 instâncias", {"bullet": True, "negrito": True}),
-    ("VND local tornou a busca local iterada do GRASP 3–4× mais rápida", {"bullet": True}),
+    ("Modelo compacto de PLI correto (validado contra o avaliador oficial), mas com relaxação linear fraca: em "
+     "300 s o Gurobi não fecha nenhuma instância e se perde nas de 8 semanas", {"bullet": True}),
+    ("Metaheurísticas com avaliação incremental compilada encontram escalas muito melhores no mesmo tempo", {"bullet": True}),
+    (f"SA + Fix-and-Optimize: melhor nas {vit.get('SA+F&O', 0)} de 8 instâncias, a {fmt(T.dev_fo_medio.mean(), 0)}% do "
+     "ótimo publicado em média", {"bullet": True, "negrito": True}),
+    ("O modelo exato, ruim sozinho, é valioso como componente (subproblemas do F&O)", {"bullet": True}),
     ("Ainda há distância ao ótimo publicado (branch-and-price, horas de CPU)", {"bullet": True}),
-    ("Próximos passos: mais sementes e as 40 instâncias; SA + LNS; geração de colunas", {"bullet": True, "cor": CINZA}),
+    ("Próximos passos: mais sementes e as 40 instâncias; subproblemas menores no F&O; geração de colunas",
+     {"bullet": True, "cor": CINZA}),
     ("Obrigado!", {"negrito": True, "cor": AZUL, "tam": 26}),
 ], tam=21)
 
@@ -398,12 +403,13 @@ texto(sl, Cm(1.5), Cm(3.2), Cm(31), Cm(14.5), [
     "annealing based on large neighborhoods. Annals of OR, 288:95–113.",
     "Cheang, B. et al. (2003). Nurse rostering problems – a bibliographic survey. EJOR, 151(3):447–460.",
     "Feo, T. A. e Resende, M. G. C. (1995). Greedy randomized adaptive search procedures. J. Global Optim., 6:109–133.",
+    "Helber, S. e Sahling, F. (2010). A fix-and-optimize approach for the multi-level capacitated lot sizing problem. "
+    "Int. J. Production Economics, 123(2):247–256.",
     "Kirkpatrick, S., Gelatt, C. D. e Vecchi, M. P. (1983). Optimization by simulated annealing. Science, 220:671–680.",
     "Legrain, A. e Omer, J. (2023). A dedicated pricing algorithm to solve a large family of nurse scheduling "
     "problems with branch-and-price. Les Cahiers du GERAD G-2023-02.",
     "Legrain, A., Omer, J. e Rosat, S. (2020). A rotation-based branch-and-price approach for the nurse scheduling "
     "problem. Math. Programming Computation, 12:417–450.",
-    "Pisinger, D. e Ropke, S. (2010). Large neighborhood search. Handbook of Metaheuristics, 2. ed., p. 399–419.",
 ], tam=13)
 
 prs.save(SAIDA)
