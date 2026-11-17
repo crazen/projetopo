@@ -28,6 +28,8 @@ Escalonamento de enfermagem com as regras do INRC-II, resolvendo o horizonte int
 | `instancias_literatura.txt`, `referencias_literatura.csv` | As 40 instâncias estáticas de Legrain e Omer (2023) e os melhores limites publicados |
 | `resultados/` | Uma linha de CSV (+ convergência e log) por execução das heurísticas |
 | `resultados_antigos/` | Resultados da versão anterior (só histórico; ver o LEIAME de lá) |
+| `rodar_gurobi_longo.py` | Gurobi com tempos maiores (ex.: 300, 900, 1800, 3600 s), mesmo método da Etapa 5 (1 thread, mipgap 0, custo real com x fixo); grava o log completo de cada execução em `logs_gurobi/` e `resultados_gurobi_longo.csv`. Opções: `--threads`, `--cfg inicio` (MIP start) |
+| `gerar_inicio_mip.py`, `inicio_mip/` | Escalas iniciais do SA + F&O (300 s) para o MIP start do Gurobi, em comandos `let x[...] := 1;` do AMPL |
 | `organizar_dados.py` | Junta os zips do INRC-II em `dados/`, com uma pasta por dataset |
 
 ## Instalação
@@ -58,7 +60,13 @@ Na primeira execução, o numba compila o `nucleo.py` (alguns segundos); depois 
 
 Uma instância é dada por `pasta historico semanas`. Por exemplo, `n005w4 0 1,2,3,3` usa o histórico `H0-n005w4-0.json` e as semanas `WD-n005w4-1, -2, -3, -3`.
 
-Para a Etapa 5 (modelo AMPL com Gurobi), rodem `include rodar_final.run;` no AMPL (troque `CFG` para escolher a configuração).
+Para a Etapa 5 (modelo AMPL com Gurobi), rodem `include rodar_final.run;` no AMPL (troque `CFG` para escolher a configuração). Para dar mais tempo ao Gurobi, com o mesmo método:
+
+```
+python rodar_gurobi_longo.py --estimar --grupo final --tempos 900,1800,3600   # mostra quantas horas leva
+python rodar_gurobi_longo.py --grupo teste --tempos 300,900,1800,3600
+python rodar_gurobi_longo.py --grupo final --tempos 900,1800,3600
+```
 
 ## Parâmetros principais
 

@@ -96,6 +96,7 @@ Atribuir a cada enfermeiro, em cada dia, um turno (Early, Day, Late, Night) com 
 | `rodar_experimentos.py` | Roda GRASP, SA e F&O nas 8 instâncias finais em vários processos de 1 thread → `resultados/v3_*.csv`; retoma se interrompido; no fim chama consolidar, preencher_tabelas, gerar_pdfs, gerar_slides |
 | `consolidar.py` | Junta Gurobi, HiGHS, relaxação linear e `resultados/v3_*.csv` em `comparacao_final.csv` e gera `entregas/fonte/fig_*.png` |
 | `testes.py` | Modelo × avaliador, custo rápido × avaliador, núcleo numba × custo rápido, GRASP/SA/F&O curtos. Deve terminar em `TUDO CERTO` |
+| `rodar_gurobi_longo.py` | (17/11/2026) Gurobi com vários limites de tempo (`--tempos 300,900,1800,3600`), mesmo método da Etapa 5 por padrão (1 thread, mipgap 0, x fixo para o custo real); log completo em `logs_gurobi/`, resumo em `resultados_gurobi_longo.csv`; retoma se interrompido. Extras: `--threads`, `--cfg inicio` (MIP start de `inicio_mip/`, gerado por `gerar_inicio_mip.py` com SA + F&O 300 s). Não testado com AMPL real (só com um AMPL simulado): conferir a 1ª execução |
 | `instancias_final.txt` | Conjunto final: n030w4, n040w4, n050w4, n060w4, n030w8, n040w8, n050w8, n060w8 (combinações da literatura) |
 | `resultados_antigos/` | Resultados da versão 2 (GRASP-ILS/SA em Python puro e a "LNS"); só histórico |
 
@@ -168,7 +169,7 @@ Com 120 s, o LNS chegou a 2240 na n021w4.
 
 0. Reunião com o professor (quarta, 18/11/2026): ele pediu mais tempo para o Gurobi provar ótimos e quer discutir representação, vizinhanças, penalidades dinâmicas e empates na função objetivo. Ver a seção "Para a reunião" de `entregas/explicacao_para_estudo.md`.
 1. (Opcional, recomendado) Rodar as heurísticas no PC: `python rodar_experimentos.py --processos 6` (~1 h; apague antes `resultados/v3_*` para refazer). Depois revisar a frase sobre a máquina nas Etapas 6 e 8 e os números citados nos textos.
-2. (Opcional) Rodar `rodar_final.run` com `CFG = 'ajustado'` e decidir se entra na Etapa 5.
+2. Pedido do professor: rodar o Gurobi com mais tempo (`rodar_gurobi_longo.py`, no PC) e atualizar a Etapa 5 com os ótimos provados. (Opcional) `rodar_final.run` com `CFG = 'ajustado'`.
 3. Revisar os documentos e os slides e preencher os e-mails no artigo.
 4. Ideias: subproblemas do F&O montados só com as variáveis livres (mais rápido nas instâncias grandes); calibrar o resfriamento do SA com o tempo; mais sementes e as 40 instâncias.
 
