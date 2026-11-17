@@ -239,18 +239,23 @@ sl = slide("Método exato: o Gurobi trava nas instâncias reais", secao="Método
     "semanas ele chega perto do ótimo em algumas (n030w4 a 7%), mas nas de 8 semanas o gap passa de 60%, chegando "
     "a 97%, e a escala é várias vezes pior que o ótimo publicado: ele mal sai do nó raiz. O gap é a garantia de pior "
     "caso: diferença entre a escala e o limite inferior. Por isso também comparamos com o melhor valor publicado. "
-    "Conclusão: o problema não é trivial para o solver, e isso justifica as metaheurísticas."))
-linhas = [["Instância", "Custo", "Limite inf.", "Gap", "Tempo (s)", "Melhor publ.", "Distância"]]
+    "Por que ele trava: a relaxação linear do modelo é fraca. Resolvendo o PL, o limite fica entre 20% e 70% do "
+    "ótimo, porque uma escala fracionária, como trabalhar meio turno todo dia, satisfaz as regras de sequência sem "
+    "pagar penalidade. E o PL é caro: o log mostra centenas de milhares de iterações do simplex e 1 a 3 nós de "
+    "branch-and-bound em 5 minutos. Conclusão: o problema não é trivial para o solver, e isso justifica as "
+    "metaheurísticas."))
+linhas = [["Instância", "Custo", "Limite inf.", "Limite PL", "Gap", "Melhor publ.", "Distância"]]
 for i, r in T.iterrows():
-    linhas.append([i, fmt(r.gurobi), fmt(r.gurobi_lb), f"{fmt(r.gurobi_gap, 1)}%", fmt(r.gurobi_t),
+    linhas.append([i, fmt(r.gurobi), fmt(r.gurobi_lb), fmt(r.pl), f"{fmt(r.gurobi_gap, 1)}%",
                    fmt(r.ub_lit), f"+{fmt(r.dev_gurobi, 0)}%"])
-tabela(sl, Cm(1.5), Cm(3.4), Cm(20), linhas, [Cm(3.4), Cm(2.6), Cm(3.0), Cm(2.4), Cm(2.6), Cm(3.0), Cm(3.0)],
+tabela(sl, Cm(1.5), Cm(3.4), Cm(20), linhas, [Cm(3.4), Cm(2.6), Cm(3.0), Cm(2.8), Cm(2.4), Cm(3.0), Cm(2.8)],
        tam=14, altura=Cm(0.82))
 texto(sl, Cm(22.5), Cm(3.4), Cm(10.3), Cm(13.5), [
     ("Gurobi 13 · 300 s · 1 thread", {"negrito": True, "cor": AZUL}),
     ("Nenhuma instância com ótimo provado", {"bullet": True}),
     ("4 semanas: às vezes perto do ótimo", {"bullet": True}),
     ("8 semanas: gap de 66% a 97%; escalas várias vezes piores que o ótimo", {"bullet": True}),
+    ("Causa: relaxação linear fraca (PL = 20%–70% do ótimo) e 1 a 3 nós em 300 s", {"bullet": True, "negrito": True}),
     ("Gap = (custo − LB) / custo", {"tam": 15, "cor": CINZA}),
     ("Distância = (custo − melhor publicado) / melhor publicado", {"tam": 15, "cor": CINZA}),
 ], tam=18)
@@ -276,60 +281,63 @@ tabela(sl, Cm(17.5), Cm(3.6), Cm(15), [["Vizinhança", "Movimento"],
        ["N4 swap de bloco", "2 enfermeiros trocam 2–7 dias seguidos"]], [Cm(4.2), Cm(10.8)], tam=15, altura=Cm(1.1))
 
 # ------------------------------------------------------------------ 9. GRASP
-sl = slide("GRASP com VND e busca local iterada", secao="Metaheurísticas", notas=(
-    "(~1 min 30 s) O GRASP alterna construção gulosa-aleatorizada e busca local. A construção vai dia a dia, vaga a "
-    "vaga: calcula o custo de colocar cada enfermeiro e sorteia entre os melhores, a lista restrita de candidatos, "
-    "controlada por alfa = 0,15. A busca local é um VND: N1, N2, N3, N4, voltando ao início a cada melhoria. Depois, "
-    "a busca local iterada perturba a solução e refaz a busca. Uma contribuição prática nossa: medimos que o VND "
-    "completo levava 96 segundos na maior instância e era refeito a cada perturbação, embora só 4 blocos mudassem. "
-    "Criamos um VND local, que só revisita enfermeiros e dias afetados, e as iterações ficaram 3 a 4 vezes mais "
-    "rápidas."))
+sl = slide("GRASP com VND", secao="Metaheurísticas", notas=(
+    "(~1 min 15 s) O GRASP é um método de múltiplas partidas: cada iteração constrói uma escala nova e a melhora "
+    "com busca local. A construção vai dia a dia, vaga a vaga: calcula o custo de colocar cada enfermeiro e sorteia "
+    "entre os melhores, a lista restrita de candidatos, controlada por alfa = 0,15. A busca local é um VND: percorre "
+    "por completo N1, N2, N3 e N4, voltando a N1 a cada melhoria, até um ótimo local das quatro vizinhanças. "
+    "Na primeira versão, em Python puro, o VND era tão lento que o GRASP fazia só 2 iterações em 5 minutos, o que "
+    "não é um GRASP de fato. Compilamos o cálculo de custo e os movimentos com o numba: cerca de 1 milhão de "
+    "movimentos por segundo, e o GRASP passou a fazer " + fmt(T.grasp_it.mean()) + " iterações em média."))
 texto(sl, Cm(1.5), Cm(3.4), Cm(16), Cm(13), [
     ("1. Construção gulosa-aleatorizada", {"negrito": True, "cor": AZUL}),
     ("RCL = {n : c(n) ≤ c_mín + α (c_máx − c_mín)}, α = 0,15", {"tam": 17}),
-    ("2. Busca local VND: N1 → N2 → N3 → N4", {"negrito": True, "cor": AZUL}),
-    ("3. Busca local iterada (ILS): perturba + VND", {"negrito": True, "cor": AZUL}),
-    ("Feo e Resende (1995); Mladenović e Hansen (1997); Lourenço et al. (2003)", {"tam": 13, "cor": CINZA, "italico": True}),
+    ("2. Busca local VND completa: N1 → N2 → N3 → N4", {"negrito": True, "cor": AZUL}),
+    ("volta a N1 a cada melhoria; para no ótimo local", {"tam": 17}),
+    ("3. Repete com uma nova construção (múltiplas partidas)", {"negrito": True, "cor": AZUL}),
+    ("Feo e Resende (1995); Mladenović e Hansen (1997)", {"tam": 13, "cor": CINZA, "italico": True}),
 ], tam=20)
 caixa = sl.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Cm(18.3), Cm(3.4), Cm(14.2), Cm(10.5))
 caixa.fill.solid(); caixa.fill.fore_color.rgb = CLARO; caixa.line.color.rgb = VERDE
 texto(sl, Cm(18.9), Cm(3.8), Cm(13), Cm(9.8), [
-    ("Melhoria: VND local", {"negrito": True, "cor": VERDE, "tam": 20}),
-    ("Problema: VND completo = 96 s (n060w8), refeito a cada perturbação → 1–2 iterações em 300 s", {"tam": 16}),
-    ("Solução: após perturbar, só revisitar os enfermeiros e dias afetados (+ 3 dias de margem)", {"tam": 16}),
-    ("Resultado: iterações do ILS 3–4× mais rápidas; GRASP de 60 s melhor nas 3 instâncias de teste",
+    ("Melhoria: núcleo compilado (numba)", {"negrito": True, "cor": VERDE, "tam": 20}),
+    ("Problema: em Python puro, ~50 mil movimentos/s → só 2 iterações do GRASP em 300 s", {"tam": 16}),
+    ("Solução: mesmo cálculo de custo, compilado; conferido contra o avaliador por testes automáticos", {"tam": 16}),
+    (f"Resultado: ~1 milhão de movimentos/s; {fmt(T.grasp_it.mean())} iterações do GRASP em média",
      {"tam": 16, "negrito": True}),
 ], tam=16)
 
-# ------------------------------------------------------------------ 10. SA + LNS
-sl = slide("Simulated Annealing e matheurística LNS", secao="Metaheurísticas", notas=(
-    "(~1 min 30 s) O Simulated Annealing sorteia um movimento por vez: se melhora, aceita; se piora em delta, aceita "
+# ------------------------------------------------------------------ 10. SA + F&O
+sl = slide("Simulated Annealing e matheurística Fix-and-Optimize", secao="Metaheurísticas", notas=(
+    "(~1 min 45 s) O Simulated Annealing sorteia um movimento por vez: se melhora, aceita; se piora em delta, aceita "
     "com probabilidade e elevado a menos delta sobre T. No começo, com T alta, aceita pioras e explora; no fim só "
-    "refina. A temperatura cai de 40 para 2 ao longo dos 5 minutos, calibrada nas instâncias de teste. Como cada "
-    "movimento custa microssegundos, ele faz milhões de passos. A matheurística LNS usa o próprio solver: fixa a "
-    "escala de quase todos e deixa o solver reotimizar um grupo de enfermeiros ou uma janela de dias por até 10 s. "
-    "O tamanho do pedaço se adapta sozinho."))
+    "refina. A temperatura cai de 40 para 2 ao longo dos 5 minutos, calibrada em instâncias fora do conjunto de "
+    "avaliação. A matheurística Fix-and-Optimize usa o próprio modelo de PLI: dividimos as variáveis por decomposições "
+    "fixas, janelas de 7 dias com todos os enfermeiros e pares de enfermeiros parecidos com todos os dias. Cada "
+    "subproblema fixa todo o resto e é resolvido pelo solver. Percorremos todos os subproblemas em ordem e repetimos "
+    "até uma passada inteira não melhorar; aí aumentamos os subproblemas. Diferente de uma LNS, nada é sorteado: a "
+    "busca é sistemática. Começamos da escala do SA, na metade do tempo."))
 texto(sl, Cm(1.5), Cm(3.4), Cm(15.3), Cm(13.5), [
     ("Simulated Annealing", {"negrito": True, "cor": AZUL, "tam": 22}),
     ("Sorteia 1 movimento (N1–N4)", {"bullet": True}),
     ("Melhora → aceita;  piora Δ → aceita com prob. e^(−Δ/T)", {"bullet": True}),
     ("T cai de 40 → 2 ao longo do tempo: explora → refina", {"bullet": True}),
-    ("Milhões de movimentos em 300 s", {"bullet": True, "negrito": True}),
+    (f"~{fmt(T.sa_it.mean() / 1e6)} milhões de movimentos em 300 s", {"bullet": True, "negrito": True}),
     ("Kirkpatrick et al. (1983); Ceschia et al. (2020)", {"tam": 13, "cor": CINZA, "italico": True}),
 ], tam=18)
 texto(sl, Cm(17.5), Cm(3.4), Cm(15.3), Cm(13.5), [
-    ("Matheurística LNS (fix-and-optimize)", {"negrito": True, "cor": AZUL, "tam": 22}),
-    ("Parte da escala do GRASP", {"bullet": True}),
-    ("Fixa tudo, exceto um grupo de enfermeiros ou uma janela de dias", {"bullet": True}),
-    ("Solver (HiGHS) reotimiza o pedaço por até 10 s", {"bullet": True}),
-    ("Tamanho do pedaço se adapta sozinho", {"bullet": True}),
-    ("Shaw (1998); Pisinger e Ropke (2010)", {"tam": 13, "cor": CINZA, "italico": True}),
+    ("Matheurística Fix-and-Optimize", {"negrito": True, "cor": AZUL, "tam": 22}),
+    ("Parte da escala do SA (metade do tempo)", {"bullet": True}),
+    ("Decomposições fixas: janelas de 7 dias; pares de enfermeiros", {"bullet": True}),
+    ("Cada subproblema: fixa o resto, o solver (HiGHS) resolve", {"bullet": True}),
+    ("Passadas em ordem até nenhuma melhorar → subproblemas maiores", {"bullet": True}),
+    ("Helber e Sahling (2010)", {"tam": 13, "cor": CINZA, "italico": True}),
 ], tam=18)
 
 # ------------------------------------------------------------------ 11. comparacao
 melhor_metodo = {}
 for i, r in T.iterrows():
-    vals = {"Gurobi": r.gurobi, "GRASP": r.grasp_medio, "SA": r.sa_medio, "LNS": r.lns_medio}
+    vals = {"Gurobi": r.gurobi, "GRASP": r.grasp_medio, "SA": r.sa_medio, "SA+F&O": r.fo_medio}
     melhor_metodo[i] = min(vals, key=vals.get)
 sl = slide("Comparação: mesmo tempo (300 s), mesma máquina", secao="Resultados", notas=(
     "(~1 min 30 s) Esta é a tabela principal. Custo médio de " + str(int(T.n_sem.min())) + " sementes para as heurísticas, 300 segundos, mesma "
@@ -337,11 +345,11 @@ sl = slide("Comparação: mesmo tempo (300 s), mesma máquina", secao="Resultado
     "; ".join(f"{i}: melhor = {m}" for i, m in melhor_metodo.items()) + ". "
     "A leitura geral: o Gurobi só compete nas instâncias pequenas de 4 semanas; nas de 8 semanas as heurísticas são "
     "muito melhores, e o Simulated Annealing é o método mais forte na maioria das instâncias."))
-linhas = [["Instância", "Gurobi", "GRASP", "SA", "LNS", "Melhor publ."]]
-cols = ["gurobi", "grasp_medio", "sa_medio", "lns_medio"]
+linhas = [["Instância", "Gurobi", "GRASP", "SA", "SA+F&O", "Melhor publ."]]
+cols = ["gurobi", "grasp_medio", "sa_medio", "fo_medio"]
 for i, r in T.iterrows():
     linhas.append([i] + [fmt(r[c]) for c in cols] + [fmt(r.ub_lit)])
-idx_best = {k + 1: 1 + ["Gurobi", "GRASP", "SA", "LNS"].index(melhor_metodo[i]) for k, i in enumerate(T.index)}
+idx_best = {k + 1: 1 + ["Gurobi", "GRASP", "SA", "SA+F&O"].index(melhor_metodo[i]) for k, i in enumerate(T.index)}
 tabela(sl, Cm(1.5), Cm(3.4), Cm(18.5), linhas, [Cm(3.6), Cm(3.0), Cm(3.0), Cm(3.0), Cm(3.0), Cm(2.9)], tam=15,
        altura=Cm(0.9), destaque=lambda i, j: idx_best.get(i) == j)
 vit = pd.Series(melhor_metodo).value_counts()
@@ -351,7 +359,7 @@ texto(sl, Cm(21), Cm(3.4), Cm(11.8), Cm(13.5), [
     (f"Custo médio de {int(T.n_sem.min())} sementes; todas as escalas viáveis", {"tam": 14, "cor": CINZA}),
     ("Distância média ao melhor publicado:", {"tam": 16, "negrito": True}),
     (f"Gurobi +{fmt(T.dev_gurobi.mean(), 0)}% · GRASP +{fmt(T.dev_grasp_medio.mean(), 0)}% · "
-     f"SA +{fmt(T.dev_sa_medio.mean(), 0)}% · LNS +{fmt(T.dev_lns_medio.mean(), 0)}%", {"tam": 16}),
+     f"SA +{fmt(T.dev_sa_medio.mean(), 0)}% · SA+F&O +{fmt(T.dev_fo_medio.mean(), 0)}%", {"tam": 16}),
 ], tam=19)
 
 # ------------------------------------------------------------------ 12. graficos

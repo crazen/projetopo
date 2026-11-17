@@ -1,4 +1,4 @@
-# ambiente Python (recriar com: pip install highspy swiglpk pandas matplotlib amplpy pypdf python-pptx)
+# ambiente Python (recriar com: pip install highspy swiglpk numba pandas matplotlib amplpy pypdf python-pptx)
 .venv/
 __pycache__/
 *.pyc
