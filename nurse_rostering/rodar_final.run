@@ -1,14 +1,27 @@
-# rodar_final.run  --  conjunto final (8 instancias da literatura), 300 s cada. Grava resultados_ampl_final.csv.
-# Uso:   ampl rodar.run          (ou, no Python:  ampl.eval("include rodar.run;"))
-# Os .dat sao gerados por gen_dat.py (a pasta dat/ ja traz as 9 instancias de teste).
+# rodar_final.run  --  conjunto final (8 instancias da literatura), 300 s cada, Gurobi.
+# Uso:   no AMPL:  include rodar_final.run;      (no Python:  ampl.eval("include rodar_final.run;"))
+# Os .dat estao em dat/ (gerados por gen_dat.py).
+#
+# Duas configuracoes do Gurobi (troque CFG abaixo):
+#   'padrao'   : parametros padrao do Gurobi (so tempo, gap 0 e 1 thread)            -> resultados_ampl_final.csv
+#   'ajustado' : mesmos limites + 3 parametros que atacam o que o log mostrou        -> resultados_ampl_ajustado.csv
+#       method=2          resolve o PL do no raiz por pontos interiores (barreira). No log padrao o simplex gastou
+#                         300 mil a 1 milhao de iteracoes so no no raiz (1 a 3 nos de branch-and-bound em 300 s).
+#       mipfocus=1        prioriza encontrar boas solucoes viaveis em vez de provar a otimalidade.
+#       norelheurtime=60  roda por ate 60 s a heuristica "NoRel" do Gurobi, que busca solucoes SEM resolver o PL;
+#                         util quando o PL e caro e fraco (o PL deste modelo da so 20% a 70% do otimo; ver
+#                         relaxacao_linear.csv).
+#   Nas duas, o metodo continua EXATO: o Gurobi so para antes do limite se provar a otimalidade (mipgap = 0).
+
+param CFG symbolic := 'ajustado';
 
 model nurse.mod;
-
-# ---- escolha UM solver (descomente o bloco desejado) ----
-option solver gurobi;                                    # recomendado: devolve o limite inferior
-option gurobi_options 'timelim=300 mipgap=0 threads=1 bestbound=1';
-# option solver highs;                                   # alternativa livre: pode nao devolver o limite inferior
-# option highs_options 'timelim=300 mipgap=0 bestbound=1';
+option solver gurobi;
+if CFG = 'padrao' then {
+    option gurobi_options 'timelim=300 mipgap=0 threads=1 bestbound=1';
+} else {
+    option gurobi_options 'timelim=300 mipgap=0 threads=1 bestbound=1 method=2 mipfocus=1 norelheurtime=60';
+}
 
 # declarar o sufixo evita o erro "Bad suffix .bestbound" quando o solver nao o devolve (valor fica 0)
 suffix bestbound OUT;
@@ -23,8 +36,9 @@ set ARQUIVOS := {'n030w4_H1_WD6-2-9-1',
                  'n060w8_H0_WD6-2-9-9-0-8-1-3'};
 
 param res symbolic;  param lb;  param tt;  param custo;
+param SAIDA symbolic := if CFG = 'padrao' then 'resultados_ampl_final.csv' else 'resultados_ampl_ajustado.csv';
 
-printf "instancia;status;custo;limite_inferior;gap_%%;tempo_s\n" > resultados_ampl_final.csv;
+printf "instancia;status;custo;limite_inferior;gap_%%;tempo_s\n" > (SAIDA);
 
 for {f in ARQUIVOS} {
     reset data;
@@ -35,12 +49,12 @@ for {f in ARQUIVOS} {
     # e resolve de novo (rapido) para obter o custo real da escala encontrada
     fix x;  solve;  let custo := Penalidade;  unfix x;
     if solve_result = 'infeasible' then {                       # nenhuma escala viavel encontrada
-        printf "%s;%s;;%s;;%.1f\n", f, res, if lb > 0 then lb & '' else '', tt >> resultados_ampl_final.csv;
+        printf "%s;%s;;%s;;%.1f\n", f, res, if lb > 0 then lb & '' else '', tt >> (SAIDA);
     } else if lb > 0 then {
-        printf "%s;%s;%g;%g;%.1f;%.1f\n", f, res, custo, lb, 100 * (custo - lb) / custo, tt >> resultados_ampl_final.csv;
+        printf "%s;%s;%g;%g;%.1f;%.1f\n", f, res, custo, lb, 100 * (custo - lb) / custo, tt >> (SAIDA);
     } else {                                                    # solver nao devolveu o limite inferior
-        printf "%s;%s;%g;;;%.1f\n", f, res, custo, tt >> resultados_ampl_final.csv;
+        printf "%s;%s;%g;;;%.1f\n", f, res, custo, tt >> (SAIDA);
     }
 }
-close resultados_ampl_final.csv;
+close (SAIDA);
 display _total_solve_elapsed_time;

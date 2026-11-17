@@ -2,8 +2,9 @@
 
   1. modelo x avaliador nas solucoes de referencia do INRC-II
   2. modelo x avaliador em escalas aleatorias (cobertura minima desligada para qualquer escala ser viavel)
-  3. custo_rapido (usado pelo GRASP) x avaliador
-  4. GRASP curto: o custo mantido incrementalmente bate com o avaliador
+  3. custo_rapido (usado pela construcao do GRASP) x avaliador
+  4. nucleo compilado (numba, usado por GRASP e SA) x custo_rapido; custo incremental x recalculo do zero
+  5. GRASP, SA e Fix-and-Optimize curtos: o custo reportado bate com o avaliador e o F&O nunca piora
 
 Uso:  python testes.py <pasta_com_os_datasets>
 """
@@ -76,31 +77,40 @@ for base, h, wd, p in instancias:
 falhas += total - iguais
 print(f"   {iguais}/{total} iguais")
 
-print("4) GRASP curto: custo incremental x avaliador")
-base, h, wd, p = instancias[0]
-inst = load_instance(base, h, wd)
-est = G.Estado(inst, *G.construir(inst, 0.15, rng))
-G.vnd(est, rng, __import__("time").time() + 5)
-custo = evaluate(inst, est.sched())[2]
-hard_peso = est.total - custo
-ok = hard_peso == 0 or hard_peso % G.GRANDE == 0
-falhas += not ok
-print(f"   incremental={est.total} avaliador={custo}  {'OK' if ok else 'FALHOU'}")
+print("4) nucleo compilado (numba) x custo rapido, e custo total incremental x recalculo")
+import numpy as np
+import nucleo as C
+ok = tot = 0
+for base, h, wd, p in instancias:
+    inst = load_instance(base, h, wd); P = C.dados(inst)
+    for _ in range(200):
+        n = rng.randrange(inst.N); D = rng.randrange(1, inst.D + 1)
+        sid = [rng.choice(range(-1, len(inst.shifts))) for _ in range(D)]
+        ok += C.custo_linha(P, n, np.array(sid, np.int64)) == custo_enf(inst, n, sid, C.GRANDE); tot += 1
+    E = C.Escala(P, *G.construir(inst, 0.15, rng))
+    bs, bk, bt = E.sid.copy(), E.skl.copy(), E.tot.copy()
+    C.semear(1)
+    C.sa_passos(P, E.sid, E.skl, E.cnt, E.ncost, E.tot, bs, bk, bt, 100000, 20.0)
+    ok += E.tot[0] == E.recalcular(); tot += 1
+    C.vnd(P, E.sid, E.skl, E.cnt, E.ncost, E.tot)
+    ok += E.tot[0] == E.recalcular(); tot += 1
+falhas += tot - ok
+print(f"   {ok}/{tot} iguais")
 
-print("5) ILS (VND local) e Simulated Annealing: custo incremental x recalculo do zero")
-import time as _t
+print("5) GRASP, SA e Fix-and-Optimize curtos: custo reportado x avaliador")
 from sa import sa as _sa
+from fo import fo as _fo
 for base, h, wd, p in instancias[::3]:
     inst = load_instance(base, h, wd)
-    est = G.Estado(inst, *G.construir(inst, 0.15, rng))
-    G.vnd(est, rng, _t.time() + 3)
-    est = G.fase_ils(est, rng, _t.time() + 3, 50, 4)
-    ok_ils = est.total == G.Estado(inst, est.sid, est.skl).total
-    r = _sa(inst, limite=3, semente=1, verbose=False)
-    ok_sa = r["custo_incremental"] == r["custo"] if r["viavel"] else (r["custo_incremental"] - r["custo"]) % G.GRANDE == 0
-    falhas += (not ok_ils) + (not ok_sa)
-    print(f"   {inst.name:30s} ILS {'OK' if ok_ils else 'FALHOU'}   SA custo={r['custo']} viavel={r['viavel']} "
-          f"{'OK' if ok_sa else 'FALHOU'}", flush=True)
+    rg = G.grasp(inst, limite=3, semente=1, verbose=False)
+    rs = _sa(inst, limite=3, semente=1, verbose=False)
+    rf = _fo(inst, limite=20, semente=1, frac_inicial=0.25, verbose=False)
+    ok_g = rg["custo_incremental"] == rg["custo"] if rg["viavel"] else (rg["custo_incremental"] - rg["custo"]) % G.GRANDE == 0
+    ok_s = rs["custo_incremental"] == rs["custo"] if rs["viavel"] else (rs["custo_incremental"] - rs["custo"]) % G.GRANDE == 0
+    ok_f = rf["custo"] <= rf["custo_inicial"] and all(b[1] <= a[1] for a, b in zip(rf["historico"], rf["historico"][1:]))
+    falhas += (not ok_g) + (not ok_s) + (not ok_f)
+    print(f"   {inst.name:30s} GRASP={rg['custo']} {'OK' if ok_g else 'FALHOU'}   SA={rs['custo']} {'OK' if ok_s else 'FALHOU'}"
+          f"   F&O={rf['custo_inicial']}->{rf['custo']} {'OK' if ok_f else 'FALHOU'}", flush=True)
 
 print("\nTUDO CERTO" if falhas == 0 else f"\n{falhas} FALHA(S)")
 sys.exit(1 if falhas else 0)

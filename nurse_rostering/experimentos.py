@@ -1,9 +1,9 @@
-"""experimentos.py - roda os metodos (exato, GRASP, SA, matheuristica LNS) em uma lista de instancias e grava
+"""experimentos.py - roda os metodos (exato, GRASP, SA, matheuristica Fix-and-Optimize) em uma lista de instancias e grava
 os resultados em CSV (uma linha por execucao, gravada assim que termina; nada se perde se o Colab cair).
 
 Uso:
   python experimentos.py --dados dados --tempo 60
-  python experimentos.py --dados dados --instancias instancias.txt --metodos exato,grasp,lns --tempo 120 --sementes 3
+  python experimentos.py --dados dados --instancias instancias.txt --metodos exato,grasp,sa,fo --tempo 120 --sementes 3
 
 Arquivo de instancias (uma por linha:  pasta  historico  semanas):
   n005w4 0 1,2,3,3
@@ -11,7 +11,9 @@ Arquivo de instancias (uma por linha:  pasta  historico  semanas):
 Sem --instancias, usa todas as instancias de teste que tem solucao de referencia (pastas Solution_H_*).
 
 Colunas do CSV: instancia, enfermeiros, semanas, metodo, semente, custo, viavel, limite_inferior, gap_%,
-                tempo_s, iteracoes, custo_referencia, lb_literatura, ub_literatura, gap_ub_lit_%
+                tempo_s, tempo_melhor_s, iteracoes, custo_referencia, lb_literatura, ub_literatura, gap_ub_lit_%
+  tempo_melhor_s = instante em que a melhor escala da execucao foi encontrada (heuristicas)
+  iteracoes      = exato: status do solver | GRASP: construcoes | SA: movimentos sorteados | F&O: subproblemas MIP
   gap_ub_lit_% = (custo - melhor solucao publicada) / melhor solucao publicada  (so para as 40 instancias
                  de referencias_literatura.csv)
 """
@@ -19,11 +21,11 @@ import argparse, csv, json, os, sys, time
 from inrc2 import load_instance, parse_spec, list_reference_instances, load_solution_dir, evaluate, save_solution_json
 from exato import resolver_exato
 from grasp import grasp
-from lns import lns
 from sa import sa
+from fo import fo
 
 CAMPOS = ["instancia", "enfermeiros", "semanas", "metodo", "semente", "custo", "viavel", "limite_inferior",
-          "gap_%", "tempo_s", "iteracoes", "custo_referencia", "lb_literatura", "ub_literatura", "gap_ub_lit_%"]
+          "gap_%", "tempo_s", "tempo_melhor_s", "iteracoes", "custo_referencia", "lb_literatura", "ub_literatura", "gap_ub_lit_%"]
 AQUI = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -58,9 +60,9 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dados", required=True, help="pasta com os datasets (n005w4, n012w8, ...)")
     ap.add_argument("--instancias", help="arquivo com a lista de instancias (opcional)")
-    ap.add_argument("--metodos", default="exato,grasp,lns")
+    ap.add_argument("--metodos", default="exato,grasp,sa,fo")
     ap.add_argument("--tempo", type=float, default=60, help="limite de tempo por execucao (s)")
-    ap.add_argument("--sementes", type=int, default=1, help="execucoes com sementes diferentes (GRASP, SA e LNS)")
+    ap.add_argument("--sementes", type=int, default=1, help="execucoes com sementes diferentes (GRASP, SA e F&O)")
     ap.add_argument("--semente-inicial", type=int, default=1, help="primeira semente (as seguintes sao consecutivas)")
     ap.add_argument("--threads", type=int, default=1, help="threads do solver")
     ap.add_argument("--alpha", type=float, default=0.15, help="alpha da RCL do GRASP")
@@ -99,15 +101,16 @@ def main():
                 elif metodo == "sa":
                     r = sa(inst, limite=a.tempo, semente=sem, verbose=False)
                     it = r["iteracoes"]
-                elif metodo == "lns":
-                    r = lns(inst, limite=a.tempo, semente=sem, threads=a.threads, verbose=False)
+                elif metodo == "fo":
+                    r = fo(inst, limite=a.tempo, semente=sem, threads=a.threads, verbose=False)
                     it = r["iteracoes"]
                 else:
                     sys.exit("metodo desconhecido: " + metodo)
                 linha = {"instancia": inst.name, "enfermeiros": inst.N, "semanas": inst.W, "metodo": metodo,
                          "semente": sem, "custo": r["custo"] if r.get("custo") is not None else "",
                          "viavel": r["viavel"], "limite_inferior": lb, "gap_%": gap,
-                         "tempo_s": round(r["tempo"], 1), "iteracoes": it, "custo_referencia": custo_ref,
+                         "tempo_s": round(r["tempo"], 1),
+                         "tempo_melhor_s": r["historico"][-1][0] if r.get("historico") else "", "iteracoes": it, "custo_referencia": custo_ref,
                          "lb_literatura": "", "ub_literatura": "", "gap_ub_lit_%": ""}
                 if inst.name in lit:
                     lb_l, ub_l = lit[inst.name]
