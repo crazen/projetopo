@@ -57,7 +57,7 @@ def decomposicao_enfermeiros(ordem, k):
     return [frozenset(ordem[a:a + k]) for a in inicios]
 
 
-def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, L0=7, k0=4,
+def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, L0=7, k0=2,
        verbose=True, sched_inicial=None):
     t0 = time.time(); prazo = t0 + limite
     # ---- solucao inicial

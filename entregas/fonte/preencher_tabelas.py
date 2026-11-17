@@ -45,46 +45,41 @@ for k, (i, r) in enumerate(T.iterrows()):
     vr = f"{f(tam['colunas'] / 1000, 1)} / {f(tam['linhas'] / 1000, 1)} mil" if tam else "–"
     sep = ' class="sep"' if k == 4 else ""
     linhas.append(f'<tr{sep}><td class="l">{i}</td><td>{int(r.N)}</td><td>{int(r["sem"])}</td><td>{vr}</td>'
-                  f'<td>{f(r.gurobi)}</td><td>{f(r.gurobi_lb)}</td><td>{f(r.gurobi_gap, 1)}%</td>'
+                  f'<td>{f(r.gurobi)}</td><td>{f(r.gurobi_lb)}</td><td>{f(r.pl)}</td><td>{f(r.gurobi_gap, 1)}%</td>'
                   f'<td>{f(r.gurobi_t)}</td><td>limite</td><td>{ub(i)}</td><td>{pct(r.dev_gurobi)}</td></tr>')
 inserir("etapa5_resultados_metodo_exato.html", "LINHAS_EXATO", "\n".join(linhas))
 
 # ---------------------------------------------------------------- etapa 6: comparacao
 linhas = []
 for k, (i, r) in enumerate(T.iterrows()):
-    medios = {"gurobi": r.gurobi, "grasp": r.grasp_medio, "sa": r.sa_medio, "lns": r.lns_medio}
+    medios = {"gurobi": r.gurobi, "grasp": r.grasp_medio, "sa": r.sa_medio, "fo": r.fo_medio}
     best = min(medios, key=medios.get)
     b = lambda m, s: f"<b>{s}</b>" if m == best else s
     sep = ' class="sep"' if k == 4 else ""
     cel = [f'<td class="l">{i}</td><td>{ub(i)}</td>',
            f"<td>{b('gurobi', f(r.gurobi))}</td><td>{pct(r.dev_gurobi)}</td>"]
-    for m in ["grasp", "sa", "lns"]:
+    for m in ["grasp", "sa", "fo"]:
         cel.append(f"<td>{b(m, f(r[m + '_medio'], 0))} ({f(r[m + '_melhor'])})</td><td>{pct(r['dev_' + m + '_medio'])}</td>")
     linhas.append(f"<tr{sep}>" + "".join(cel) + "</tr>")
 inserir("etapa6_comparacao_exato_aproximado.html", "LINHAS_COMP", "\n".join(linhas))
 
-vit = {"gurobi": 0, "grasp": 0, "sa": 0, "lns": 0}
+vit = {"gurobi": 0, "grasp": 0, "sa": 0, "fo": 0}
 for i, r in T.iterrows():
-    medios = {"gurobi": r.gurobi, "grasp": r.grasp_medio, "sa": r.sa_medio, "lns": r.lns_medio}
+    medios = {"gurobi": r.gurobi, "grasp": r.grasp_medio, "sa": r.sa_medio, "fo": r.fo_medio}
     vit[min(medios, key=medios.get)] += 1
 esforco = {
     "gurobi": "branch-and-bound; não provou ótimo em nenhuma",
-    "grasp": f"{f(T.grasp_it.mean(), 1)} construções + VND + ILS em média",
-    "sa": f"{f(T.sa_it.mean() / 1e6, 1)} milhões de movimentos em média",
-    "lns": f"{f(T.lns_it.mean(), 0)} subproblemas MIP em média",
+    "grasp": f"{f(T.grasp_it.mean(), 0)} iterações (construção + VND) em média",
+    "sa": f"{f(T.sa_it.mean() / 1e6, 0)} milhões de movimentos em média",
+    "fo": f"{f(T.fo_it.mean(), 0)} subproblemas de PLI em média (após o SA)",
 }
-nomes = {"gurobi": "Exato (Gurobi)", "grasp": "GRASP-ILS", "sa": "Simulated Annealing", "lns": "LNS (matheurística)"}
+nomes = {"gurobi": "Exato (Gurobi)", "grasp": "GRASP", "sa": "Simulated Annealing", "fo": "SA + Fix-and-Optimize"}
 dev = {"gurobi": T.dev_gurobi.mean(), "grasp": T.dev_grasp_medio.mean(), "sa": T.dev_sa_medio.mean(),
-       "lns": T.dev_lns_medio.mean()}
-import glob as _g
-_conv = {}
-for _f in _g.glob(os.path.join(NR, "v2_*_convergencia.json")):
-    _conv.update(json.load(open(_f)))
-tbest = {m: [h[-1][0] for k, h in _conv.items() if k.split("|")[1] == m] for m in ["grasp", "sa", "lns"]}
-tb = {m: f"{f(sum(v) / len(v))} s" for m, v in tbest.items()}
+       "fo": T.dev_fo_medio.mean()}
+tb = {m: f"{f(T[m + '_tmelhor'].mean())} s" for m in ["grasp", "sa", "fo"]}
 tb["gurobi"] = "–"
 linhas = [f'<tr><td class="l">{nomes[m]}</td><td>300 s</td><td>{tb[m]}</td><td>{pct(dev[m])}</td><td>{vit[m]} de 8</td>'
-          f'<td class="l">{esforco[m]}</td></tr>' for m in ["gurobi", "grasp", "sa", "lns"]]
+          f'<td class="l">{esforco[m]}</td></tr>' for m in ["gurobi", "grasp", "sa", "fo"]]
 inserir("etapa6_comparacao_exato_aproximado.html", "LINHAS_RESUMO", "\n".join(linhas))
 
 # ---------------------------------------------------------------- artigo: tabelas
@@ -113,18 +108,18 @@ ex.append('</tbody></table><p class="legenda">Tabela 2. Método exato (modelo da
 inserir("etapa8_artigo_sbpo.html", "TAB_EXATO", "\n".join(ex))
 
 cp = ['<table class="nw"><thead><tr><th class="l" rowspan="2">Instância</th><th rowspan="2">UB publ.</th>'
-      '<th rowspan="2">Gurobi</th><th colspan="2">GRASP</th><th colspan="2">SA</th><th colspan="2">LNS</th></tr>'
+      '<th rowspan="2">Gurobi</th><th colspan="2">GRASP</th><th colspan="2">SA</th><th colspan="2">SA + F&amp;O</th></tr>'
       '<tr><th>médio</th><th>melhor</th><th>médio</th><th>melhor</th><th>médio</th><th>melhor</th></tr></thead><tbody>']
 for k, (i, r) in enumerate(T.iterrows()):
-    medios = {"gurobi": r.gurobi, "grasp": r.grasp_medio, "sa": r.sa_medio, "lns": r.lns_medio}
+    medios = {"gurobi": r.gurobi, "grasp": r.grasp_medio, "sa": r.sa_medio, "fo": r.fo_medio}
     best = min(medios, key=medios.get)
     b = lambda m, s: f"<b>{s}</b>" if m == best else s
     sep = ' class="sep"' if k == 4 else ""
     cp.append(f'<tr{sep}><td class="l">{i}</td><td>{f(r.ub_lit)}</td><td>{b("gurobi", f(r.gurobi))}</td>' +
-              "".join(f"<td>{b(m, f(r[m + '_medio']))}</td><td>{f(r[m + '_melhor'])}</td>" for m in ["grasp", "sa", "lns"])
+              "".join(f"<td>{b(m, f(r[m + '_medio']))}</td><td>{f(r[m + '_melhor'])}</td>" for m in ["grasp", "sa", "fo"])
               + "</tr>")
 cp.append(f'<tr class="sep"><td class="l">Dist. média</td><td></td><td>{pct(dev["gurobi"])}</td>'
-          f'<td>{pct(dev["grasp"])}</td><td></td><td>{pct(dev["sa"])}</td><td></td><td>{pct(dev["lns"])}</td><td></td></tr>')
+          f'<td>{pct(dev["grasp"])}</td><td></td><td>{pct(dev["sa"])}</td><td></td><td>{pct(dev["fo"])}</td><td></td></tr>')
 cp.append('</tbody></table><p class="legenda">Tabela 3. Custo das escalas com 300 s por execução (heurísticas: média '
           f'e melhor de {int(T.n_sem.min())} sementes). Em negrito, o melhor custo médio da instância. Dist. média: distância média '
           'ao UB publicado.</p>')
@@ -132,4 +127,4 @@ inserir("etapa8_artigo_sbpo.html", "TAB_COMP", "\n".join(cp))
 
 print("vitorias:", vit)
 print("distancia media:", {k: round(v, 1) for k, v in dev.items()})
-print("iteracoes medias:", T[["grasp_it", "sa_it", "lns_it"]].mean().round(1).to_dict())
+print("iteracoes medias:", T[["grasp_it", "sa_it", "fo_it"]].mean().round(1).to_dict())

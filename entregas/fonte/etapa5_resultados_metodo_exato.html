@@ -12,7 +12,7 @@
 
 <h2>2. Resultados nas instâncias de avaliação (300 s)</h2>
 <table class="nw">
-<thead><tr><th class="l">Instância</th><th>N</th><th>Sem.</th><th>Variáveis /<br>restrições</th><th>Custo da<br>escala</th><th>Limite<br>inferior</th><th>Gap</th><th>Tempo<br>(s)</th><th>Status</th><th>Melhor<br>publicado</th><th>Distância ao<br>melhor publ.</th></tr></thead>
+<thead><tr><th class="l">Instância</th><th>N</th><th>Sem.</th><th>Variáveis /<br>restrições</th><th>Custo da<br>escala</th><th>Limite<br>inferior</th><th>Limite<br>do PL</th><th>Gap</th><th>Tempo<br>(s)</th><th>Status</th><th>Melhor<br>publicado</th><th>Distância ao<br>melhor publ.</th></tr></thead>
 <tbody>
 <!--LINHAS_EXATO-->
 <tr><td class="l">n030w4</td><td>30</td><td>4</td><td>26,4 / 26,7 mil</td><td>1.785</td><td>1.385</td><td>22,4%</td><td>305</td><td>limite</td><td>1.670*</td><td>+6,9%</td></tr>
@@ -26,7 +26,7 @@
 <!--/LINHAS_EXATO-->
 </tbody></table>
 <p class="legenda">Tabela 1. Gurobi 13.0.3 via AMPL, limite de 300 s, 1 thread. * = ótimo provado na literatura.</p>
-<p class="nota">Status “limite” = o tempo acabou antes de provar a otimalidade. O tempo informado pelo AMPL inclui a preparação do modelo pelo solver, por isso pode passar um pouco de 300 s. Variáveis e restrições: tamanho do modelo gerado (milhares). Melhor publicado: Legrain e Omer (2023), Tabela 5.</p>
+<p class="nota">Limite inferior: o do Gurobi ao fim de 300 s. Limite do PL: valor da relaxação linear do modelo (variáveis binárias relaxadas para [0, 1]). Status “limite” = o tempo acabou antes de provar a otimalidade. O tempo informado pelo AMPL inclui a preparação do modelo pelo solver, por isso pode passar um pouco de 300 s. Variáveis e restrições: tamanho do modelo gerado (milhares). Melhor publicado: Legrain e Omer (2023), Tabela 5.</p>
 
 <!--SEC_TESTE-->
 <h2>3. Resultados nas instâncias de teste (60 s)</h2>
@@ -50,9 +50,10 @@
 
 <h2>4. Análise</h2>
 <!--ANALISE-->
-<p><b>Qualidade da solução.</b> Nas instâncias de avaliação, o Gurobi atingiu o limite de 300 s em todas, sem provar a otimalidade de nenhuma. Nas de 4 semanas, a escala da n030w4 ficou a apenas 6,9% do ótimo e a da n050w4 a 37,6%, mas a da n060w4 ficou a 231%. Nas de 8 semanas, o gap ficou entre 66% e 97%, e as escalas custam de 2,3 a 12,5 vezes o melhor valor publicado: com 53 mil a 108 mil variáveis e restrições, o solver praticamente não passa do nó raiz no tempo disponível.</p>
-<p><b>Instâncias pequenas.</b> O Gurobi provou a otimalidade em 2 das 9 instâncias de teste (n005w4, com 5 enfermeiros, em 15 e 51 s) e, nas de 4 semanas, obteve escalas melhores que as soluções de referência da competição. Mesmo com apenas 12 enfermeiros, porém, as instâncias de 8 semanas (n012w8) ficaram com gap de 52% a 77% e escalas piores que as de referência. Isso mostra que o modelo é correto e que a dificuldade cresce sobretudo com o horizonte: o número de restrições de sequência e o acoplamento entre semanas tornam a relaxação linear fraca.</p>
-<p><b>Limite inferior e tempo.</b> O limite inferior do Gurobi é fraco (por exemplo, 1.385 na n030w4, cujo ótimo é 1.670). Por isso o gap superestima a distância real ao ótimo, e comparamos também com os valores publicados. O tempo reportado inclui a preparação do modelo, por isso passa de 300 s em três instâncias. Os autores que resolvem essas instâncias até o ótimo usam <i>branch-and-price</i> especializado e até horas de computação (Legrain e Omer, 2023). <b>Conclusão:</b> o método exato com o modelo compacto é adequado para instâncias pequenas ou de 4 semanas, mas não para as instâncias reais de 8 semanas em poucos minutos, o que motiva os métodos aproximados da Etapa 6.</p>
+<p><b>Qualidade da solução.</b> Nas instâncias de avaliação, o Gurobi atingiu o limite de 300 s em todas, sem provar a otimalidade de nenhuma. Nas de 4 semanas, a escala da n030w4 ficou a apenas 6,9% do ótimo e a da n050w4 a 37,6%, mas a da n060w4 ficou a 231%. Nas de 8 semanas, o gap ficou entre 66% e 97%, e as escalas custam de 2,3 a 12,5 vezes o melhor valor publicado.</p>
+<p><b>Por que o solver não avança.</b> Dois fatos explicam esses números. Primeiro, a <b>relaxação linear do modelo é fraca</b>: o limite do PL fica entre 20% e 70% do melhor valor publicado (por exemplo, 319 na n040w4, cujo ótimo é 1.565). As penalidades de sequência mínima, fim de semana e total de turnos quase não aparecem no PL, porque uma escala fracionária (como trabalhar “meio turno” todos os dias) as satisfaz sem custo. Os cortes do Gurobi melhoram esse limite (de 812 para 1.385 na n030w4), mas não o bastante. Segundo, <b>o próprio PL é caro</b>: o registro do Gurobi mostra de 280 mil a 1 milhão de iterações do simplex e apenas 1 a 3 nós de <i>branch-and-bound</i> em 300 s em todas as instâncias, exceto a n030w4 (1.041 nós). Ou seja, quase todo o tempo vai para o nó raiz, e a escala devolvida vem das heurísticas internas do solver. Por isso o resultado piora tanto de n050w4 para n060w4 e nas instâncias de 8 semanas, e não de forma proporcional ao tamanho: depende de a heurística do solver acertar uma boa escala antes do tempo acabar.</p>
+<p><b>Instâncias pequenas.</b> O Gurobi provou a otimalidade em 2 das 9 instâncias de teste (n005w4, com 5 enfermeiros, em 15 e 51 s) e, nas de 4 semanas, obteve escalas melhores que as soluções de referência da competição. Já nas de 8 semanas (n012w8), mesmo com 12 enfermeiros, o gap ficou entre 52% e 77%. A dificuldade cresce sobretudo com o horizonte, que multiplica as restrições de sequência e o acoplamento entre semanas.</p>
+<p><b>Conclusão.</b> O modelo está correto (com a escala fixada, reproduz o custo do validador oficial) e é resolvido até o ótimo em instâncias pequenas, mas o modelo compacto não é adequado para as instâncias reais em poucos minutos. Os autores que resolvem essas instâncias até o ótimo usam uma formulação por escalas completas de cada enfermeiro com geração de colunas (<i>branch-and-price</i>), de relaxação muito mais forte, e até horas de computação (Legrain e Omer, 2023). Isso motiva os métodos aproximados da Etapa 6.</p>
 <!--/ANALISE-->
 
 <h2>Referências</h2>
