@@ -1,6 +1,6 @@
 # Nurse Rostering – resumo dos métodos e preparação para a reunião
 
-17/11/2026 · Jorge Dourado (cópia do doc de estudo no claude.ai)
+18/11/2026 · Jorge Dourado (cópia do doc de estudo no claude.ai)
 
 Montamos a escala de 4 ou 8 semanas de 30 a 60 enfermeiros com quatro métodos; o melhor (SA + Fix-and-Optimize) ficou, em média, 17% acima do ótimo publicado, e o Gurobi, 354%.
 
@@ -44,7 +44,7 @@ Os quatro métodos, numa frase cada:
 | S2 (15 e 30) | Dias seguidos no mesmo turno (15) e dias seguidos de trabalho (30) fora do mínimo/máximo do contrato | Máximo de 5 dias seguidos; trabalhou 7: paga 2 × 30 |
 | S3 (30) | Folgas seguidas fora do mínimo/máximo | Mínimo de 2 folgas seguidas; teve 1 só: paga 30 |
 | S4 (10) | Pedido de folga não atendido | Pediu folga na sexta e foi escalado |
-| S5 (30) | Fim de semana incompleto: trabalhou só sábado ou só domingo, quando o contrato pede os dois juntos | |
+| S5 (30) | Fim de semana incompleto: trabalhou só sábado ou só domingo, quando o contrato pede os dois juntos |  |
 | S6 (20) | Total de turnos no horizonte fora do mínimo/máximo do contrato | Máximo 20, fez 22: paga 2 × 20 |
 | S7 (30) | Fins de semana trabalhados acima do máximo | Máximo 2, trabalhou 3: paga 30 |
 
@@ -55,7 +55,7 @@ Os quatro métodos, numa frase cada:
 | Termo | Significado |
 | --- | --- |
 | n, d, s, k | Enfermeiro (*nurse*), dia, turno (*shift*), habilidade (*skill*) |
-| x[n,d,s,k] | Variável do modelo: vale 1 se o enfermeiro n faz o turno s com a habilidade k no dia d, e 0 se não |
+| x\[n,d,s,k\] | Variável do modelo: vale 1 se o enfermeiro n faz o turno s com a habilidade k no dia d, e 0 se não |
 | PLI | Programação Linear Inteira: modelo com equações lineares e variáveis inteiras (aqui, 0 ou 1) |
 | PL / relaxação linear | O mesmo modelo deixando as variáveis assumirem frações (ex.: 0,5). É fácil de resolver e dá um limite inferior: nenhuma escala real custa menos que ele |
 | LB (limite inferior) | Valor que o solver garante que o ótimo não fica abaixo |
@@ -107,7 +107,7 @@ Os quatro tipos de movimento (vizinhanças) usados pelo GRASP e pelo SA:
 O modelo de PLI (`nurse.mod`) escreve as mesmas regras como equações, e o Gurobi procura a escala de custo mínimo e prova que é a melhor.
 
 1. `gen_dat.py` converte os JSON da instância no arquivo de dados do AMPL (`.dat`), incluindo o histórico como dias virtuais.
-2. O AMPL monta o modelo: uma variável binária x[n,d,s,k] = 1 se o enfermeiro n faz o turno s com a habilidade k no dia d, mais variáveis que medem cada penalidade. São 26 mil a 108 mil variáveis e restrições.
+2. O AMPL monta o modelo: uma variável binária x\[n,d,s,k\] = 1 se o enfermeiro n faz o turno s com a habilidade k no dia d, mais variáveis que medem cada penalidade. São 26 mil a 108 mil variáveis e restrições.
 3. O Gurobi resolve por branch-and-bound por até 300 s com 1 thread: resolve a relaxação linear (o que dá o limite inferior), ramifica em variáveis fracionárias e guarda a melhor escala achada.
 4. No fim, `rodar_final.run` fixa as variáveis x e resolve de novo (menos de 1 s) para obter o custo real da escala, que bate com o avaliador oficial.
 
@@ -118,7 +118,7 @@ O modelo de PLI (`nurse.mod`) escreve as mesmas regras como equações, e o Guro
 O GRASP repete "construir uma escala nova e melhorar até não dar mais", e guarda a melhor. Fez em média 209 repetições em 300 s.
 
 1. **Construção, dia a dia.** Para cada vaga de demanda do dia (primeiro as mínimas, depois as ótimas), calcula quanto o custo de cada enfermeiro disponível subiria se ele pegasse a vaga, mais um termo que evita gastar logo os turnos de quem tem contrato curto.
-2. **Sorteio controlado (RCL).** Separa os candidatos com custo até c_mín + 0,15 × (c_máx − c_mín) e sorteia um deles. Com 0 seria sempre o mesmo (guloso); com 1, aleatório.
+2. **Sorteio controlado (RCL).** Separa os candidatos com custo até c\_mín + 0,15 × (c\_máx − c\_mín) e sorteia um deles. Com 0 seria sempre o mesmo (guloso); com 1, aleatório.
 3. **Busca local VND.** Testa todos os movimentos N1, em ordem aleatória, aplicando os que baixam o custo. Se algum melhorou, volta para N1; se não, passa para N2, depois N3, depois N4. Para quando nenhum dos quatro melhora (ótimo local).
 4. **Repete** com outra construção e fica com a melhor escala.
 
@@ -136,7 +136,7 @@ O SA anda de escala em escala com um movimento aleatório por vez e, às vezes, 
 
 T0 = 40 e Tf = 2 foram calibrados em 4 instâncias da literatura que não estão no conjunto final.
 
-**Resultado:** 22% acima do ótimo em média. Medimos que, nas instâncias n040w4 e n040w8, a escala atual fica viável o tempo todo, mas na primeira metade do tempo, com T alto, o custo soft sobe para 16 mil a 31 mil e só desce depois: boa parte do tempo é gasta "passeando". Isso é assunto para a reunião.
+**Resultado:** 22% acima do ótimo em média. Medi hoje que, nas instâncias n040w4 e n040w8, a escala atual fica viável o tempo todo, mas na primeira metade do tempo, com T alto, o custo soft sobe para 16 mil a 31 mil e só desce depois: boa parte do tempo é gasta "passeando". Isso é assunto para a reunião (última seção).
 
 ## SA + Fix-and-Optimize (F&O)
 
@@ -154,19 +154,19 @@ O F&O usa o próprio modelo de PLI do Gurobi, mas em pedaços pequenos que o sol
 
 ## Resultados
 
-Custo médio de 3 sementes nas heurísticas, 300 s e 1 thread por execução (menor é melhor). * = ótimo provado na literatura.
+Custo médio de 3 sementes nas heurísticas, 300 s e 1 thread por execução (menor é melhor). \* = ótimo provado na literatura.
 
 | Instância | Melhor publicado | Gurobi | GRASP | SA | SA + F&O |
 | --- | --- | --- | --- | --- | --- |
-| n030w4 | 1.670* | 1.785 | 2.868 | 1.792 | **1.752** |
-| n040w4 | 1.565* | 2.435 | 3.340 | 1.830 | **1.740** |
-| n050w4 | 1.315* | 1.810 | 3.477 | 1.595 | **1.530** |
-| n060w4 | 2.450* | 8.110 | 5.193 | 2.800 | **2.797** |
-| n030w8 | 2.010* | 4.580 | 4.885 | 2.298 | **2.180** |
+| n030w4 | 1.670\* | 1.785 | 2.868 | 1.792 | **1.752** |
+| n040w4 | 1.565\* | 2.435 | 3.340 | 1.830 | **1.740** |
+| n050w4 | 1.315\* | 1.810 | 3.477 | 1.595 | **1.530** |
+| n060w4 | 2.450\* | 8.110 | 5.193 | 2.800 | **2.797** |
+| n030w8 | 2.010\* | 4.580 | 4.885 | 2.298 | **2.180** |
 | n040w8 | 2.515 | 21.655 | 7.132 | 3.322 | **3.193** |
 | n050w8 | 4.810 | 27.065 | 9.585 | 5.538 | **5.352** |
 | n060w8 | 2.150 | 26.830 | 8.187 | 3.383 | **3.122** |
-| Distância média ao melhor publicado | | +354% | +146% | +22% | **+17%** |
+| Distância média ao melhor publicado |  | +354% | +146% | +22% | **+17%** |
 
 O Gurobi rodou no i5-13400; as heurísticas, num servidor mais lento por núcleo (o que não as favorece).
 
@@ -241,6 +241,80 @@ Com isso, a Etapa 5 passa a ter ótimos provados por vocês, e nas instâncias e
 - **Aceitar empates (Δ = 0):** andar por escalas de mesmo custo até achar uma saída. O SA já faz; o VND do GRASP não.
 - **Oscilação estratégica (penalidades dinâmicas):** deixar a escala ficar inviável por um tempo, com peso de violação mais baixo, e depois subir o peso para voltar à região viável. É "piorar" em viabilidade para chegar a escalas melhores do outro lado. Hoje, com peso fixo de 10.000, o SA nunca faz isso.
 - **Reaquecimento no SA:** quando a busca estagna, subir a temperatura de novo por um tempo.
+
+## Dúvidas explicadas com calma
+
+**O que é uma instância?** É um exemplo concreto do problema, com dados fixos. O problema é a pergunta geral ("montar a escala de um hospital"); a instância é um hospital específico. Comparação: "resolver equação do 2º grau" é o problema; "x² − 5x + 6 = 0" é uma instância. O nome diz o que ela tem: n040w8\_H0\_WD0-6-8-9-2-6-6-4 = 40 enfermeiros (n040), 8 semanas (w8), arquivo de histórico 0 (H0) e as demandas das semanas vêm dos arquivos 0, 6, 8, 9, 2, 6, 6 e 4 (WD). Calibramos T0 e Tf em 4 instâncias diferentes das 8 da comparação, como estudar com exercícios diferentes dos da prova: assim o bom resultado não vem de ter "decorado" as instâncias.
+
+**O que é um subproblema (no F&O)?** É o mesmo problema, mas com só um pedaço livre e o resto congelado. Na n040w8 há 40 × 56 = 2.240 células na tabela; uma janela de 7 dias deixa livres só 40 × 7 = 280, e as outras ficam como estão. O solver procura a melhor forma de preencher essas 280 células sem mexer nas outras. A escala atual é "uma solução válida do subproblema" porque o jeito como essas 280 células já estão preenchidas é uma das opções que o solver pode escolher. Como ele devolve a melhor opção, o resultado é no mínimo tão bom quanto o atual: no pior caso, ele devolve a mesma escala. É como reorganizar uma gaveta: o arranjo atual é um dos arranjos possíveis, então o melhor arranjo nunca é pior que ele.
+
+**O que é PL?** PL = Programação Linear: um modelo com equações lineares em que as variáveis podem ter valores fracionários. É o que se resolve na relaxação linear: o nosso modelo, mas deixando x valer 0,5 em vez de só 0 ou 1. O Gurobi resolve um PL em cada **nó** da árvore de branch-and-bound (o primeiro nó, ou nó raiz, é o problema inteiro relaxado). O método usado para resolver um PL é o **simplex**, que anda de canto em canto da região das soluções válidas, melhorando um pouco a cada passo; cada passo é uma iteração. "O PL é caro" quer dizer: só esse primeiro PL precisou de 280 mil a 1 milhão de passos. Como sobrou pouco tempo, o Gurobi só conseguiu olhar de 1 a 3 nós; a árvore de busca mal começou.
+
+**O que é branch-and-price?** É o método exato que os autores dos ótimos publicados usaram. Junta duas ideias:
+
+- **Geração de colunas:** em vez de uma variável por célula (x\[n,d,s,k\]), cada variável é a **escala inteira de um enfermeiro** (uma "coluna"). Existem bilhões de escalas possíveis por enfermeiro, então não dá para listar todas. O método começa com poucas, resolve o PL e pergunta a um subproblema (o *pricing*, "preço"): "existe uma escala para algum enfermeiro que deixaria a solução mais barata?". Se existe, ela entra no modelo; repete até não existir mais.
+- **Branch-and-bound:** se a solução do PL ainda for fracionária (por exemplo, "meia" escala A e "meia" escala B para o mesmo enfermeiro), divide o problema em casos e continua.
+
+Por que é tão melhor aqui: cada coluna já é uma escala real de um enfermeiro, que cumpre (ou paga) direito as regras de sequência, fins de semana e total. O truque do "meio turno todo dia" deixa de funcionar, e a relaxação fica quase igual ao ótimo. É bem mais difícil de implementar, e por isso não está no projeto.
+
+**Por que se chama ótimo "local" se existe solução melhor?** Porque "local" quer dizer "na vizinhança": entre as escalas que se alcançam com **um** movimento pequeno (N1 a N4), ela é a melhor. Uma escala melhor pode existir, mas está "longe": para chegar nela é preciso fazer vários movimentos, e alguns deles pioram antes de melhorar. A melhor escala de todas é o **ótimo global**. Imagine andar no escuro procurando o ponto mais baixo de um terreno: você desce até um ponto em que qualquer passo sobe. Ali é o fundo do vale onde você está (local), mas pode haver um vale mais fundo depois do morro.
+
+**O que é numba?** É uma biblioteca de Python que compila funções Python para código de máquina na primeira vez que são chamadas. Python normal é interpretado, linha a linha, e fica lento em laços repetidos milhões de vezes. Com o numba, o mesmo código roda de 20 a 50 vezes mais rápido. No projeto ele fica em `nucleo.py`, que calcula o custo dos movimentos: passou de cerca de 50 mil para 1 milhão de movimentos por segundo. O algoritmo e o resultado do cálculo são os mesmos; só a velocidade muda (os testes automáticos conferem isso).
+
+## A relaxação linear, passo a passo
+
+### Qual é a "nossa" relaxação
+
+Não escrevemos uma relaxação à parte. O Gurobi pega o nosso modelo (`nurse.mod`) e, por conta própria, troca "x vale 0 ou 1" por "x vale qualquer número entre 0 e 1". O resto das equações continua igual. A força da relaxação depende de **como as regras foram escritas** no modelo: o mesmo problema pode ser escrito de jeitos diferentes, e alguns jeitos "vazam" menos quando as variáveis viram frações.
+
+**Exemplo real do nosso modelo.** A regra "no mínimo 2 dias seguidos de trabalho" é escrita assim: para cada dia t, a variável de penalidade v precisa satisfazer
+
+```latex
+v \ge (1 - w_{t-2}) + w_{t-1} + (1 - w_t) - 2
+```
+
+em que w\_t = 1 se o enfermeiro trabalha no dia t. A conta só dá 1 no padrão "folga, trabalha, folga" (um dia de trabalho isolado), e aí v ≥ 1 e a penalidade é cobrada.
+
+| Escala dos dias t−2, t−1, t | Conta | Penalidade v |
+| --- | --- | --- |
+| Real: folga, trabalha, folga (w = 0, 1, 0) | 1 + 1 + 1 − 2 = 1 | v ≥ 1: paga |
+| Relaxada: w = 0,5 nos três dias | 0,5 + 0,5 + 0,5 − 2 = −0,5 | v ≥ −0,5, então v = 0: não paga nada |
+
+A versão relaxada consegue "trabalhar meio dia todo dia": cobre a demanda pela metade com dois enfermeiros e não paga nenhuma penalidade de sequência. O mesmo acontece com fins de semana e totais de turnos. Por isso ela custa muito menos que qualquer escala real.
+
+### O que quer dizer "vale 20% a 70% do ótimo"
+
+É a divisão entre o custo da relaxação e o custo ótimo (o melhor publicado). Medimos com `relaxacao.py`:
+
+| Instância | Custo da relaxação (PL) | Ótimo / melhor publicado | PL ÷ ótimo |
+| --- | --- | --- | --- |
+| n040w4 | 319 | 1.565 | 20% |
+| n060w8 | 631 | 2.150 | 29% |
+| n050w4 | 545 | 1.315 | 41% |
+| n040w8 | 1.073 | 2.515 | 43% |
+| n030w4 | 812 | 1.670 | 49% |
+| n050w8 | 2.401 | 4.810 | 50% |
+| n060w4 | 1.246 | 2.450 | 51% |
+| n030w8 | 1.402 | 2.010 | 70% |
+
+Leitura da n040w4: a relaxação diz "nenhuma escala custa menos que 319", o que é verdade, mas o ótimo é 1.565. A informação é quase inútil: é como alguém perguntar o preço de um carro e ouvir "custa mais de R$ 10 mil". Uma relaxação **forte** diria "custa mais de 1.500", bem perto do valor real; uma **fraca** diz "mais de 319".
+
+### Por que o Gurobi resolve a relaxação em cada nó
+
+O Gurobi usa *branch-and-bound* (ramificar e limitar). A relaxação é a ferramenta que ele usa para decidir onde não precisa procurar.
+
+1. **Nó raiz.** Resolve a relaxação do problema inteiro. Sai uma solução com frações, por exemplo "enfermeiro 3 faz meio turno no dia 10", e um limite inferior.
+2. **Ramificar (branch).** Escolhe uma variável fracionária e divide o problema em dois casos: "o enfermeiro 3 trabalha no dia 10" (x = 1) e "não trabalha" (x = 0). Cada caso é um novo **nó** da árvore.
+3. **Limitar (bound).** Em cada nó, resolve de novo a relaxação, agora com aquela variável fixa. Isso dá o menor custo possível daquele caso.
+4. **Podar.** Se o limite de um nó já é maior que a melhor escala conhecida, ninguém daquele ramo pode ganhar, e o ramo inteiro é descartado sem ser explorado. Exemplo: melhor escala conhecida = 1.785; um nó cuja relaxação dá 1.900 é descartado.
+5. Repete até não sobrar nó. Quando o menor limite entre os nós abertos fica igual à melhor escala, o ótimo está provado (gap = 0%).
+
+**Por que a relaxação fraca atrapalha tanto:** a poda só acontece quando o limite do nó passa da melhor escala. Com limites em 20% a 70% do ótimo, quase nenhum nó é podado, e a árvore teria um número astronômico de nós. E aqui nem isso aconteceu: só a relaxação do nó raiz já levou quase os 300 s, então o Gurobi resolveu de 1 a 3 nós.
+
+### Como seria uma relaxação forte
+
+- **Cortes:** acrescentar desigualdades que toda escala real cumpre, mas que proíbem os truques fracionários. O Gurobi já faz isso sozinho no nó raiz: na n030w4, os cortes dele subiram o limite de 812 para 1.385, ainda abaixo do ótimo de 1.670.
+- **Geração de colunas (*branch-and-price*):** cada variável é a escala inteira de um enfermeiro, que já paga direito as próprias penalidades. "Meia escala A + meia escala B" custa a média de duas escalas reais, então o truque do "meio dia todo dia" não dá mais penalidade zero, e o limite fica quase igual ao ótimo. É o que os autores dos ótimos publicados usam.
 
 ## Perguntas prováveis e respostas
 
