@@ -97,7 +97,7 @@ Os quatro tipos de movimento (vizinhanças) usados pelo GRASP e pelo SA:
 
 | Nome | O que muda |
 | --- | --- |
-| N1 troca | O que um enfermeiro faz em um dia (outro turno, outra habilidade ou folga) |
+| N1 troca | O que um enfermeiro faz em um dia (outro turno ou folga; a habilidade é escolhida sozinha, a que mais ajuda a cobertura) |
 | N2 swap | Dois enfermeiros trocam o que fazem em um dia (a cobertura do dia não muda) |
 | N3 bloco | Um enfermeiro recebe o mesmo turno, ou folga, em 2 a 5 dias seguidos |
 | N4 swap de bloco | Dois enfermeiros trocam o que fazem em 2, 3, 4, 5 ou 7 dias seguidos |
