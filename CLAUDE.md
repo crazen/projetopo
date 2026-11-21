@@ -32,6 +32,8 @@ Todas as entregas precisam de referências reais e conhecidas, citadas no texto 
 - **Pendência:** as Etapas 1 a 4 precisam ser reescritas para o tema novo. Verificar com o professor e o orientador o que precisa ser reentregue.
 - **Horizonte estático:** resolvemos o horizonte inteiro (4 ou 8 semanas) de uma vez, com toda a demanda conhecida. A competição original é semana a semana. Por isso os custos não se comparam ao ranking oficial, mas se comparam à literatura da versão estática (seção 6).
 - **Crítica do professor à Etapa 4 (16/11/2026):** a matheurística chamada "LNS (fix-and-optimize)" não era um Fix-and-Optimize (sorteava pedaços: é uma LNS). Corrigido com `fo.py` (decomposições fixas percorridas sistematicamente; Helber e Sahling, 2010) e textos revisados.
+- **Reunião com o professor (18/11/2026):** GRASP, SA e SA + F&O estão ok; o F&O agora atende a crítica. Pediu: mais tempo para o Gurobi (provar ótimos), tratar empates (decidir pela gravidade das violações), penalidades dinâmicas (viabilidade recente / oscilação estratégica) e, no GRASP, a construção que sorteia alguns candidatos e pega o melhor (gulosa-amostral). A dupla quer manter os métodos como estão (fácil de explicar), sem combinar mais métodos.
+- **Versão 4 (21/11/2026):** implementadas as três estratégias como opções (`des`, `din`/`dinS`, `amN`), calibradas em 4 instâncias fora do conjunto final (`calibracao/v4`). Escolhas: GRASP amostral (p = 3) + desempate; SA e SA + F&O com penalidade dinâmica suave (`dinS`). No SA o desempate piorou, então não é usado. Sem opções, o código v4 reproduz a v3 exatamente (teste 6 de `testes.py`).
 - **Uso de IA:** a disciplina permite IA e qualquer ferramenta. A dupla precisa entender o problema, o modelo, as heurísticas e a solução para a apresentação.
 
 ## 4. O problema
@@ -88,15 +90,16 @@ Atribuir a cada enfermeiro, em cada dia, um turno (Early, Day, Late, Night) com 
 | `exato.py` | Mesmo `nurse.mod` via tradutor GLPK + HiGHS (sem licença); `ModeloPLI` também é o motor do F&O |
 | `relaxacao.py` | Limite da relaxação linear do modelo → `relaxacao_linear.csv` (PL = 20%–70% do ótimo: formulação fraca) |
 | `custo_rapido.py` | Custo de um enfermeiro em Python (usado pela construção do GRASP) |
-| `nucleo.py` | (16/11/2026) Mesmo custo + movimentos N1–N4, SA e VND compilados com numba (~1 milhão de movimentos/s). Testado contra `custo_rapido` e o avaliador |
-| `grasp.py` | (16/11/2026) GRASP clássico: construção dia a dia com RCL (alpha = 0,15) + VND completo (N1 troca, N2 swap, N3 bloco, N4 swap de bloco). Sem ILS (a versão antiga tinha ILS porque só fazia 2 iterações) |
-| `sa.py` | Simulated Annealing sobre o `nucleo.py`; Metropolis; T cai geometricamente com o tempo, T0 = 40, Tf = 2 (calibrados em `calibracao/`, 4 instâncias fora do conjunto final) |
+| `nucleo.py` | (16/11/2026; v4 em 21/11) Mesmo custo + movimentos N1–N4, SA e VND compilados com numba (~1 milhão de movimentos/s). v4: custo separado em soft, hard e gravidade (`GRAV_PADRAO`); avaliação soft + λ·hard. Testado contra `custo_rapido`, o avaliador e a v3 (`resultados_antigos/v3/`) |
+| `grasp.py` | (16/11/2026) GRASP clássico: construção dia a dia com RCL (alpha = 0,15) + VND completo (N1 troca, N2 swap, N3 bloco, N4 swap de bloco). Sem ILS. v4: `amostra=p` (gulosa-amostral, Resende e Ribeiro, 2016) e `desempate=True` no VND |
+| `sa.py` | Simulated Annealing sobre o `nucleo.py`; Metropolis; T cai geometricamente com o tempo, T0 = 40, Tf = 2 (calibrados em `calibracao/`, 4 instâncias fora do conjunto final). v4: `penalidade='dinamica'` (λ ajustado pela viabilidade recente a cada lote de 20 mil movimentos: cai /1,1 se viável > `viab_alta`, sobe ×1,1 se < `viab_baixa`; λ ∈ [`lam_min`, 10000]; últimos 10% com λ = 10000; Gendreau, Hertz e Laporte, 1994) e `desempate=True`. `dinS` = viab 0,8–0,98, λ ≥ 10 |
 | `fo.py` | (16/11/2026) Matheurística **Fix-and-Optimize** (Helber e Sahling, 2010): SA na 1ª metade do tempo, depois decomposições fixas (janelas de 7 dias com todos os enfermeiros, 50% de sobreposição; pares de enfermeiros com mesmas habilidades/contrato) resolvidas em sequência pelo HiGHS (até 30 s cada) até uma passada inteira sem melhora; então L += 7, k += 2. Substituiu `lns.py` |
 | `experimentos.py` | Roda exato, GRASP, SA e F&O (`--metodos exato,grasp,sa,fo`) numa lista de instâncias; CSV linha a linha com gap contra a literatura e `tempo_melhor_s` |
 | `rodar_experimentos.py` | Roda GRASP, SA e F&O nas 8 instâncias finais em vários processos de 1 thread → `resultados/v3_*.csv`; retoma se interrompido; no fim chama consolidar, preencher_tabelas, gerar_pdfs, gerar_slides |
 | `consolidar.py` | Junta Gurobi, HiGHS, relaxação linear e `resultados/v3_*.csv` em `comparacao_final.csv` e gera `entregas/fonte/fig_*.png` |
 | `testes.py` | Modelo × avaliador, custo rápido × avaliador, núcleo numba × custo rápido, GRASP/SA/F&O curtos. Deve terminar em `TUDO CERTO` |
-| `rodar_gurobi_longo.py` | (17/11/2026) Gurobi com vários limites de tempo (`--tempos 300,900,1800,3600`), mesmo método da Etapa 5 por padrão (1 thread, mipgap 0, x fixo para o custo real); log completo em `logs_gurobi/`, resumo em `resultados_gurobi_longo.csv`; retoma se interrompido. Extras: `--threads`, `--cfg inicio` (MIP start de `inicio_mip/`, gerado por `gerar_inicio_mip.py` com SA + F&O 300 s). Não testado com AMPL real (só com um AMPL simulado): conferir a 1ª execução |
+| `rodar_gurobi_longo.py` | (17/11/2026) Gurobi com vários limites de tempo (`--tempos 300,900,1800,3600`), mesmo método da Etapa 5 por padrão (1 thread, mipgap 0, x fixo para o custo real); log completo em `logs_gurobi/`, resumo em `resultados_gurobi_longo*.csv`; retoma se interrompido; impede o PC de dormir; `--push` envia cada resultado ao GitHub; `--saida` para 2 processos. Extras: `--threads`, `--cfg inicio` (MIP start de `inicio_mip/`). Rodado no PC em 21/11/2026 (final e teste, 3600 s) |
+| `analisar_logs_gurobi.py` | (21/11/2026) Do log de 3600 s, incumbente e limite em 60/300/900/1800 s (Gurobi determinístico) → `resultados_gurobi_tempos.csv` |
 | `instancias_final.txt` | Conjunto final: n030w4, n040w4, n050w4, n060w4, n030w8, n040w8, n050w8, n060w8 (combinações da literatura) |
 | `resultados_antigos/` | Resultados da versão 2 (GRASP-ILS/SA em Python puro e a "LNS"); só histórico |
 
@@ -172,5 +175,7 @@ Com 120 s, o LNS chegou a 2240 na n021w4.
 2. Pedido do professor: rodar o Gurobi com mais tempo (`rodar_gurobi_longo.py`, no PC) e atualizar a Etapa 5 com os ótimos provados. (Opcional) `rodar_final.run` com `CFG = 'ajustado'`.
 3. Revisar os documentos e os slides e preencher os e-mails no artigo.
 4. Ideias: subproblemas do F&O montados só com as variáveis livres (mais rápido nas instâncias grandes); calibrar o resfriamento do SA com o tempo; mais sementes e as 40 instâncias.
+
+**Rotina da v4 (nuvem):** `rodar_experimentos.py --prefixo v4 --pasta resultados --metodos fo+dinS,sa+dinS,grasp+am3+des,fo,sa,grasp --processos 2` (as três últimas = versão 3 na mesma máquina, para a Tabela 3 da Etapa 6). Cuidado: não apagar `_tmp_*.txt` nem usar `git stash -u` com execuções rodando (perde resultados).
 
 **Regras para o Claude:** não alterar `nucleo.py`, `grasp.py`, `sa.py`, `fo.py` ou `nurse.mod` sem perguntar. Rodar `testes.py` depois de qualquer mudança. Comparar métodos sempre com o mesmo tempo e na mesma máquina.
