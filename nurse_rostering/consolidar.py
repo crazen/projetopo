@@ -58,8 +58,10 @@ def agregar(df):
 
 def carregar():
     os.chdir(AQUI)
-    ler = lambda pad: pd.concat([pd.read_csv(f) for f in sorted(glob.glob(os.path.join(RES, pad)))], ignore_index=True) \
-        if glob.glob(os.path.join(RES, pad)) else pd.DataFrame(columns=["instancia", "metodo"])
+    def ler(pad):                                   # so execucoes concluidas (cabecalho + 1 linha)
+        fs = [f for f in sorted(glob.glob(os.path.join(RES, pad))) if open(f).read().count("\n") >= 2]
+        return pd.concat([pd.read_csv(f) for f in fs], ignore_index=True) if fs else \
+            pd.DataFrame(columns=["instancia", "metodo"])
     v4 = ler("v4_*.csv"); v3 = ler("v3_*.csv")
     for df in (v4, v3):
         if len(df):

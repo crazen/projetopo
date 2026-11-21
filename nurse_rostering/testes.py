@@ -124,10 +124,8 @@ for base, h, wd, p in instancias[::3]:
               f"{'OK' if ok_f else 'FALHOU'}", flush=True)
 
 print("6) regressao: nucleo v4 sem as opcoes novas = nucleo v3 (mesmos movimentos, mesma semente)")
-import importlib.util
-esp = importlib.util.spec_from_file_location("nucleo_v3", os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                                                    "resultados_antigos", "v3", "nucleo_v3.py"))
-V3 = importlib.util.module_from_spec(esp); esp.loader.exec_module(V3)
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "resultados_antigos", "v3"))
+import nucleo_v3 as V3                     # import normal (o cache do numba precisa de um modulo com nome)
 ok = tot = 0
 for base, h, wd, p in instancias[::2]:
     inst = load_instance(base, h, wd)

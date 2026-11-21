@@ -111,6 +111,25 @@ Atribuir a cada enfermeiro, em cada dia, um turno (Early, Day, Late, Night) com 
 
 ## 8. Resultados até agora
 
+### 8.0 Resultados v4 (21/11/2026, 300 s, 1 thread, 3 sementes; servidor Xeon da nuvem, 2 processos)
+
+Heurísticas na nuvem (Xeon 2,3 GHz, mais rápido por núcleo que o servidor da v3: ~330 milhões de movimentos do SA em 300 s, contra ~250). A versão 3 foi rodada de novo **na mesma máquina** (`resultados/v4_*_{grasp,sa,fo}_*`), para medir o efeito das estratégias. Gurobi: o mesmo da Etapa 5 (i5, 300 s). Arquivos: `comparacao_final.csv`, `resultados_v4.csv`, `resultados/v4_*`.
+
+| Instância | Melhor publ. | Gurobi 300 s | GRASP v4 | SA v4 | SA+F&O v4 | (v3 mesma máquina: GRASP / SA / F&O) |
+|---|---|---|---|---|---|---|
+| n030w4 | 1670* | 1785 | 2715 | **1773** | 1782 | 2868 / 1755 / 1737 |
+| n040w4 | 1565* | 2435 | 3242 | 1918 | **1747** | 3285 / 1845 / 1745 |
+| n050w4 | 1315* | 1810 | 3428 | 1633 | **1545** | 3477 / 1633 / 1543 |
+| n060w4 | 2450* | 8110 | 5165 | 2787 | **2703** | 5193 / 2785 / 2728 |
+| n030w8 | 2010* | 4580 | 4407 | 2288 | **2167** | 4885 / 2313 / 2178 |
+| n040w8 | 2515 | 21655 | 6805 | 3307 | **3100** | 7132 / 3267 / 3088 |
+| n050w8 | 4810 | 27065 | 9097 | 5470 | **5367** | 9585 / 5468 / 5270 |
+| n060w8 | 2150 | 26830 | 7615 | 3288 | **3003** | 8175 / 3298 / 3018 |
+
+Distância média ao melhor publicado: Gurobi +353,8%; GRASP v4 +134,3% (v3: +145,5%, v4 melhor nas 8); SA v4 +22,3% (v3: +21,6%); **SA+F&O v4 +16,1%** (v3: +15,7%), melhor método em 7/8 (n030w4: SA). Conclusão honesta: o desempate (com a construção amostral) melhora o GRASP; a penalidade dinâmica, boa na calibração (12,8% → 10,5%), não se repetiu no teste (diferença dentro do ruído entre sementes); o desempate piora o SA. Etapa 6 refeita com esses números (`entregas/etapa6_comparacao_exato_aproximado.pdf`, 2 páginas).
+
+**Pendente:** (1) o artigo (Etapa 8) e os slides ainda têm TEXTO da v3: as tabelas do artigo já foram atualizadas por `preencher_tabelas.py`, mas o texto não (e o PDF do artigo não foi regenerado); (2) Gurobi de 1 h: rodou no PC em 21/11 (dois terminais, `--push`), mas só chegou ao GitHub o primeiro resultado (n005w4 H0: ótimo 1470 em 73 s). Os demais estão em `nurse_rostering/logs_gurobi/` e `resultados_gurobi_longo*.csv` no PC. Quando chegarem, rodar `analisar_logs_gurobi.py` e `consolidar.py` (já leem esses arquivos) e atualizar a Etapa 5 (e, se der, a linha "Gurobi 1 hora" da Tabela 2 da Etapa 6, que `preencher_tabelas.py` insere sozinha).
+
 ### 8.1 Resultados finais v3 (16–17/11/2026, 300 s, 1 thread)
 
 Gurobi: i5-13400 local (`resultados_ampl_final.csv`, CFG padrão). Heurísticas: 3 sementes, servidor Xeon 2,1 GHz com 2 processos (mais lento por núcleo que o i5 — se rodar de novo no PC com `rodar_experimentos.py --processos 6`, trocar a frase sobre a máquina nas Etapas 6 e 8). Arquivos: `comparacao_final.csv`, `resultados/v3_*.csv`, `relaxacao_linear.csv`.
