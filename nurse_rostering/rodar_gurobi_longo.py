@@ -30,7 +30,7 @@ Tempo total, no pior caso = instancias x soma dos tempos (as que provarem o otim
 Da para interromper (Ctrl+C) e rodar de novo: as execucoes ja gravadas no CSV sao puladas.
 Dica: rode os tempos curtos primeiro (a ordem de --tempos e respeitada), para ter resultados parciais cedo.
 """
-import argparse, csv, os, sys, time
+import argparse, csv, os, subprocess, sys, time
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 TESTE = ["n005w4_H0_WD1-2-3-3", "n005w4_H1_WD5-3-1-0", "n005w4_H2_WD6-7-8-9",
@@ -41,7 +41,31 @@ FINAL = ["n030w4_H1_WD6-2-9-1", "n040w4_H0_WD2-0-6-1", "n050w4_H0_WD0-4-8-7", "n
          "n060w8_H0_WD6-2-9-9-0-8-1-3"]
 CAMPOS = ["instancia", "cfg", "tempo_limite_s", "threads", "status", "custo", "limite_inferior", "gap_%",
           "tempo_s", "otimo_provado", "custo_inicial", "log"]
-SAIDA = os.path.join(AQUI, "resultados_gurobi_longo.csv")
+SAIDA = os.path.join(AQUI, "resultados_gurobi_longo.csv")    # trocada por --saida
+
+
+def manter_acordado():
+    """Windows: impede o PC de dormir enquanto este processo roda (volta ao normal quando ele termina)."""
+    if os.name == "nt":
+        try:
+            import ctypes
+            ctypes.windll.kernel32.SetThreadExecutionState(0x80000000 | 0x00000001)   # CONTINUOUS | SYSTEM_REQUIRED
+            print("PC nao vai dormir enquanto este script rodar", flush=True)
+        except Exception as e:
+            print("aviso: nao consegui impedir o modo de suspensao:", e, flush=True)
+
+
+def enviar_github(arquivos, msg):
+    """--push: grava no git so os resultados e logs do Gurobi e envia ao GitHub; se falhar, so avisa."""
+    raiz = os.path.dirname(AQUI)
+    cmds = [["git", "add", "--"] + arquivos, ["git", "commit", "-q", "-m", msg, "--"] + arquivos,
+            ["git", "pull", "-q", "--rebase", "--autostash"], ["git", "push", "-q"]]
+    for c in cmds:
+        r = subprocess.run(c, cwd=raiz, capture_output=True, text=True)
+        if r.returncode != 0 and c[1] != "commit":
+            print("   aviso: git falhou em", " ".join(c[:3]), (r.stderr or r.stdout).strip()[:300], flush=True)
+            return
+    print("   resultados enviados ao GitHub", flush=True)
 
 
 def abrir_ampl(licenca):
@@ -118,7 +142,12 @@ def main():
     ap.add_argument("--cfg", choices=["puro", "inicio"], default="puro", help="puro = igual a Etapa 5")
     ap.add_argument("--licenca", default=os.environ.get("AMPL_LICENSE_UUID"))
     ap.add_argument("--estimar", action="store_true", help="so mostra quantas execucoes e o tempo maximo")
+    ap.add_argument("--saida", default="resultados_gurobi_longo.csv",
+                    help="CSV de saida (use nomes diferentes para rodar dois processos ao mesmo tempo)")
+    ap.add_argument("--push", action="store_true", help="depois de cada execucao, envia CSV e log ao GitHub")
     a = ap.parse_args()
+    global SAIDA
+    SAIDA = os.path.join(AQUI, a.saida)
     lista = a.instancias or {"teste": TESTE, "final": FINAL, "todas": TESTE + FINAL}[a.grupo]
     for i in lista:
         if not os.path.exists(os.path.join(AQUI, "dat", i + ".dat")):
@@ -133,6 +162,7 @@ def main():
     if a.estimar or not tarefas:
         return
     os.makedirs(os.path.join(AQUI, "logs_gurobi"), exist_ok=True)
+    manter_acordado()
     ampl = abrir_ampl(a.licenca)
     novo = not os.path.exists(SAIDA)
     with open(SAIDA, "a", newline="") as f:
@@ -143,6 +173,11 @@ def main():
             print(f"\n[{k}/{len(tarefas)}] {inst}  tempo={t:g}s", flush=True)
             r = rodar(ampl, inst, a.cfg, t, a.threads)
             w.writerow(r); f.flush()
+            if a.push:
+                nome = os.path.splitext(r["log"])[0]
+                arqs = [os.path.relpath(SAIDA, os.path.dirname(AQUI)),
+                        "nurse_rostering/" + r["log"], "nurse_rostering/" + nome + "_ampl.txt"]
+                enviar_github(arqs, f"Gurobi {inst} {t:g}s: custo {r['custo']}, gap {r['gap_%']}%")
             print("   ", {c: r[c] for c in ("status", "custo", "limite_inferior", "gap_%", "tempo_s", "otimo_provado")},
                   flush=True)
     print(f"\nresultados em {SAIDA}; logs completos em {os.path.join(AQUI, 'logs_gurobi')}")
