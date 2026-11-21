@@ -2,3 +2,4 @@ instancia,cfg,tempo_limite_s,threads,status,custo,limite_inferior,gap_%,tempo_s,
 n030w4_H1_WD6-2-9-1,puro,3600,1,limit,1725,1570,8.99,3602.0,False,,logs_gurobi/n030w4_H1_WD6-2-9-1_puro_3600s_1t.log
 n040w4_H0_WD2-0-6-1,puro,3600,1,limit,1785,1015,43.14,3603.8,False,,logs_gurobi/n040w4_H0_WD2-0-6-1_puro_3600s_1t.log
 n050w4_H0_WD0-4-8-7,puro,3600,1,limit,1565,885,43.45,3602.1,False,,logs_gurobi/n050w4_H0_WD0-4-8-7_puro_3600s_1t.log
+n060w4_H1_WD6-1-1-5,puro,3600,1,limit,2755,1855,32.67,3647.5,False,,logs_gurobi/n060w4_H1_WD6-1-1-5_puro_3600s_1t.log
