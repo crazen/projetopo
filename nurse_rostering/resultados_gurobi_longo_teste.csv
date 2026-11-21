@@ -1,0 +1,2 @@
+instancia,cfg,tempo_limite_s,threads,status,custo,limite_inferior,gap_%,tempo_s,otimo_provado,custo_inicial,log
+n005w4_H0_WD1-2-3-3,puro,3600,1,solved,1470,1470,0.0,73.1,True,,logs_gurobi/n005w4_H0_WD1-2-3-3_puro_3600s_1t.log
