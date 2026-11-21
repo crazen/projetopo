@@ -42,10 +42,12 @@ LOTE = 20000      # movimentos por chamada ao codigo compilado (temperatura, lam
 
 def sa(inst, limite=60, semente=0, T0=40.0, Tf=2.0, alpha=0.15, verbose=True, inicial=None,
        penalidade="fixa", desempate=False, lam_min=1.0, beta=1.1, viab_alta=0.9, viab_baixa=0.5,
-       frac_final=0.1, grav=None):
+       frac_final=0.1, grav=None, final=False):
     """inicial (opcional): escala (sched) de partida; senao, usa a construcao do GRASP.
     penalidade: 'fixa' (lam = 10000) ou 'dinamica' (lam entre lam_min e 10000, ajustado pela viabilidade recente).
-    desempate: movimentos de mesmo custo decididos pela gravidade das violacoes."""
+    desempate: movimentos de mesmo custo decididos pela gravidade das violacoes.
+    final: devolve a escala do FIM da busca (se viavel), e nao a melhor; usado nos ciclos do F&O para sair do
+    otimo local (a melhor seria a propria escala de partida)."""
     rng = random.Random(semente)
     t0 = time.time()
     P = C.dados(inst, grav)
@@ -77,6 +79,8 @@ def sa(inst, limite=60, semente=0, T0=40.0, Tf=2.0, alpha=0.15, verbose=True, in
             if verbose and len(historico) % 20 == 0:
                 print(f"  t={time.time() - t0:6.1f}s  T={T:6.2f}  lam={lam:8.1f}  melhor={best_tot[0]}", flush=True)
     melhor = C.Escala(P, best_sid, best_skl)
+    if final and E.tot[1] == 0:
+        melhor = E; best_tot = E.tot.copy()
     sched = melhor.sched()
     hard, comp, custo = evaluate(inst, sched)
     if is_feasible(hard) and custo != best_tot[0]:

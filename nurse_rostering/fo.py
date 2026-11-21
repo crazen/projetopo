@@ -68,10 +68,14 @@ def decomposicao_enfermeiros(ordem, k):
 
 
 def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, L0=7, k0=2,
-       verbose=True, sched_inicial=None, sa_kw=None, max_livres=None):
+       verbose=True, sched_inicial=None, sa_kw=None, max_livres=None, ciclos=False, frac_ciclo=0.05,
+       T0_ciclo=10.0):
     """sa_kw: opcoes do SA da fase inicial (por exemplo penalidade='dinamica', desempate=True).
     max_livres: tamanho maximo (enfermeiro-dias livres) de um subproblema de janela; acima disso, a janela e
-    dividida em grupos de enfermeiros parecidos (versao 4b). None = janela com todos os enfermeiros."""
+    dividida em grupos de enfermeiros parecidos (versao 4b). None = janela com todos os enfermeiros.
+    ciclos: quando o F&O trava (uma passada sem melhora mesmo depois de aumentar os subproblemas), um SA curto
+    (frac_ciclo do tempo total, reaquecido a T0_ciclo) parte da melhor escala e devolve a escala do fim da busca;
+    o F&O recomeca dela com os subproblemas do tamanho inicial. A melhor escala vista e sempre guardada."""
     t0 = time.time(); prazo = t0 + limite
     # ---- solucao inicial
     historico = []
@@ -92,7 +96,8 @@ def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, 
         col, custo = None, float("inf")
     ordem = ordem_enfermeiros(inst)
     L, k = L0, k0
-    passadas = subproblemas = otimos = melhoras = 0
+    passadas = subproblemas = otimos = melhoras = n_ciclos = 0
+    melhor, melhor_custo = atual, custo
     while time.time() < prazo - 1:
         passadas += 1
         subs = ([("dias", (jan, bl)) for jan in decomposicao_dias(inst.D, L)
@@ -116,23 +121,43 @@ def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, 
                 if novo < custo - 1e-6:
                     atual, col, custo = r["sched"], r["col_value"], novo
                     melhoras += 1; melhorou_passada = True
-                    historico.append((round(time.time() - t0, 2), custo))
+                    if custo < melhor_custo:
+                        melhor, melhor_custo = atual, custo
+                        historico.append((round(time.time() - t0, 2), custo))
                     if verbose:
                         desc = (f"dias {parte[0][0]}-{parte[0][1] - 1} x {len(parte[1])} enf." if tipo == "dias"
                                 else f"{len(parte)} enfermeiros")
                         print(f"  passada {passadas} (L={L}, k={k})  t={time.time() - t0:6.1f}s  {desc:16s} -> {custo}",
                               flush=True)
         if not melhorou_passada and time.time() < prazo - 1:
+            travou = L > L0 or k > k0 or (L >= inst.D and k >= inst.N)
+            if ciclos and travou and prazo - time.time() > frac_ciclo * limite + 5:
+                n_ciclos += 1                               # ciclo: SA curto tira a escala do otimo local
+                rs = sa(inst, limite=frac_ciclo * limite, semente=semente + 1000 * n_ciclos, verbose=False,
+                        inicial=melhor, T0=T0_ciclo, final=True, **(sa_kw or {}))
+                novo_col, _ = m.completar(rs["sched"]) if rs["viavel"] else (None, None)
+                if novo_col is not None:
+                    atual, col, custo = rs["sched"], novo_col, rs["custo"]
+                else:
+                    atual, custo = melhor, melhor_custo; col, _ = m.completar(atual)
+                if custo < melhor_custo:                    # o proprio SA do ciclo pode achar escala melhor
+                    melhor, melhor_custo = atual, custo
+                    historico.append((round(time.time() - t0, 2), custo))
+                L, k = L0, k0
+                if verbose:
+                    print(f"  ciclo {n_ciclos}: SA reaquecido -> {custo} (melhor {melhor_custo})", flush=True)
+                continue
             if L >= inst.D and k >= inst.N:
                 break                                       # nada mais a aumentar
             L = min(inst.D, L + 7); k = min(inst.N, k + 2)  # otimo local: subproblemas maiores
             if verbose:
                 print(f"  passada {passadas} sem melhora: L={L}, k={k}", flush=True)
     m.liberar_todos()
-    hard, comp, custo = evaluate(inst, atual)
-    return dict(sched=atual, custo=custo, viavel=is_feasible(hard), hard=hard, componentes=comp,
+    hard, comp, custo = evaluate(inst, melhor)
+    return dict(sched=melhor, custo=custo, viavel=is_feasible(hard), hard=hard, componentes=comp,
                 custo_inicial=custo_ini, iteracoes=subproblemas, passadas=passadas, otimos=otimos,
-                melhoras=melhoras, L_final=L, k_final=k, tempo=time.time() - t0, historico=historico)
+                melhoras=melhoras, L_final=L, k_final=k, tempo=time.time() - t0, historico=historico,
+                ciclos=n_ciclos)
 
 
 if __name__ == "__main__":

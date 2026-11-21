@@ -71,6 +71,8 @@ def opcoes(metodo):
             kw["penalidade"] = "dinamica"
         elif f == "dinS" and base in ("sa", "fo"):          # oscilacao mais suave: fica viavel 80-98% do tempo
             kw.update(penalidade="dinamica", viab_baixa=0.8, viab_alta=0.98, lam_min=10.0)
+        elif f == "cic" and base == "fo":                   # F&O em ciclos com SA reaquecido
+            kw["ciclos"] = True
         elif f == "des" and base in ("grasp", "sa", "fo"):
             kw["desempate"] = True
         elif f.startswith("am") and base == "grasp":
@@ -130,8 +132,9 @@ def main():
                     r = sa(inst, limite=a.tempo, semente=sem, verbose=False, **opcoes(metodo)[1])
                     it = r["iteracoes"]
                 elif opcoes(metodo)[0] == "fo":
+                    kw_fo = dict(opcoes(metodo)[1]); cic = kw_fo.pop("ciclos", False)
                     r = fo(inst, limite=a.tempo, semente=sem, threads=a.threads, verbose=False,
-                           sa_kw=opcoes(metodo)[1])
+                           sa_kw=kw_fo, ciclos=cic)
                     it = r["iteracoes"]
                 else:
                     sys.exit("metodo desconhecido: " + metodo)

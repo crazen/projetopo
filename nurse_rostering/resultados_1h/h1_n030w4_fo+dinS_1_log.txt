@@ -1,0 +1,8 @@
+1 instancias x ['fo+dinS'], 3600s cada -> /home/claude/projetopo/nurse_rostering/resultados_1h/h1_n030w4_fo+dinS_1.csv
+
+== n030w4_H1_WD6-2-9-1  fo+dinS  semente=1
+Running HiGHS 1.16.0 (git hash: f3f113d): Copyright (c) 2026 under MIT licence terms
+Includes third-party software components, see THIRD_PARTY_NOTICES.md for full details
+    {'custo': 1740, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 3600.0, 'iteracoes': 157}
+
+resultados em /home/claude/projetopo/nurse_rostering/resultados_1h/h1_n030w4_fo+dinS_1.csv
