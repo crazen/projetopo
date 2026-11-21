@@ -4,3 +4,4 @@ n005w4_H1_WD5-3-1-0,puro,3600,1,solved,1600,1600,0.0,765.5,True,,logs_gurobi/n00
 n005w4_H2_WD6-7-8-9,puro,3600,1,solved,1430,1430,0.0,26.1,True,,logs_gurobi/n005w4_H2_WD6-7-8-9_puro_3600s_1t.log
 n012w8_H0_WD3-5-0-2-0-4-5-2,puro,3600,1,limit,2820,2230.99,20.89,3601.2,False,,logs_gurobi/n012w8_H0_WD3-5-0-2-0-4-5-2_puro_3600s_1t.log
 n012w8_H1_WD7-7-0-8-9-3-2-6,puro,3600,1,limit,3450,2756.14,20.11,3601.3,False,,logs_gurobi/n012w8_H1_WD7-7-0-8-9-3-2-6_puro_3600s_1t.log
+n012w8_H2_WD4-5-6-7-2-1-2-1,puro,3600,1,limit,3285,2506.82,23.69,3601.2,False,,logs_gurobi/n012w8_H2_WD4-5-6-7-2-1-2-1_puro_3600s_1t.log
