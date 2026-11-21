@@ -67,6 +67,7 @@ vit = {"gurobi": 0, "grasp": 0, "sa": 0, "fo": 0}
 for i, r in T.iterrows():
     medios = {"gurobi": r.gurobi, "grasp": r.grasp_medio, "sa": r.sa_medio, "fo": r.fo_medio}
     vit[min(medios, key=medios.get)] += 1
+TEM_1H = "gurobi_1h" in T and T.gurobi_1h.notna().all()
 esforco = {
     "gurobi": "branch-and-bound; não provou ótimo em nenhuma",
     "grasp": f"{f(T.grasp_it.mean(), 0)} iterações (construção + VND) em média",
@@ -80,7 +81,33 @@ tb = {m: f"{f(T[m + '_tmelhor'].mean())} s" for m in ["grasp", "sa", "fo"]}
 tb["gurobi"] = "–"
 linhas = [f'<tr><td class="l">{nomes[m]}</td><td>300 s</td><td>{tb[m]}</td><td>{pct(dev[m])}</td><td>{vit[m]} de 8</td>'
           f'<td class="l">{esforco[m]}</td></tr>' for m in ["gurobi", "grasp", "sa", "fo"]]
+if TEM_1H:
+    n_ot = int(T.gurobi_1h_otimo.astype(str).eq("True").sum())
+    linhas.insert(1, f'<tr><td class="l">Exato (Gurobi), 1 hora</td><td>3.600 s</td><td>–</td>'
+                     f'<td>{pct(T.dev_gurobi_1h.mean())}</td><td>–</td><td class="l">mesmo método com 12 vezes mais '
+                     f'tempo; provou ótimo em {n_ot} de 8</td></tr>')
 inserir("etapa6_comparacao_exato_aproximado.html", "LINHAS_RESUMO", "\n".join(linhas))
+
+# efeito das estrategias novas (versao 3 x versao 4, mesma maquina, mesmas sementes)
+CFG = {"grasp": "desempate por gravidade", "sa": "penalidade dinâmica + desempate", "fo": "SA da versão 4 + F&amp;O"}
+try:
+    import importlib.util as _u
+    _e = _u.spec_from_file_location("consolidar", os.path.join(NR, "consolidar.py"))
+    _K = _u.module_from_spec(_e); _e.loader.exec_module(_K)
+    DESC = {"din": "penalidade dinâmica", "dinS": "penalidade dinâmica suave", "des": "desempate por gravidade"}
+    for m in ["grasp", "sa", "fo"]:
+        partes = _K.FINAL[m].split("+")[1:]
+        d = [DESC.get(x, f"construção amostral ({x[2:].replace('p', '%')})" if x.startswith("am") else x) for x in partes]
+        CFG[m] = " + ".join(d) if d else "igual à versão 3"
+except Exception as e:
+    print("aviso: configuracao final nao lida de consolidar.py:", e)
+if all(f"{m}_v3_medio" in T for m in ["grasp", "sa", "fo"]):
+    ab = []
+    for m in ["grasp", "sa", "fo"]:
+        melhorou = int((T[f"{m}_medio"] < T[f"{m}_v3_medio"]).sum())
+        ab.append(f'<tr><td class="l">{nomes[m]}</td><td class="l">{CFG[m]}</td><td>{pct(T[f"dev_{m}_v3_medio"].mean())}</td>'
+                  f'<td>{pct(T[f"dev_{m}_medio"].mean())}</td><td>{melhorou} de 8</td></tr>')
+    inserir("etapa6_comparacao_exato_aproximado.html", "LINHAS_ESTRATEGIAS", "\n".join(ab))
 
 # ---------------------------------------------------------------- artigo: tabelas
 inst = ['<table class="nw"><thead><tr><th class="l">Instância</th><th>Histórico; semanas</th><th>N</th><th>Sem.</th>'

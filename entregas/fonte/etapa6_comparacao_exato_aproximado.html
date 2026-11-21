@@ -7,7 +7,9 @@
 <p class="etapa">Pesquisa Operacional - UNIFESP/ICT - Etapa 6: Implementação – Método Exato × Métodos Aproximados</p>
 
 <h2>1. Métodos comparados e configuração</h2>
-<p>Comparamos o método exato da Etapa 5 (modelo de PLI no AMPL, resolvido pelo Gurobi 13.0.3) com três métodos aproximados descritos na Etapa 4, que compartilham a mesma avaliação incremental do custo, compilada com o numba: o <b>GRASP</b> com busca local VND (Feo e Resende, 1995), o <b>Simulated Annealing</b> (SA; Kirkpatrick et al., 1983) e a matheurística <b>Fix-and-Optimize</b> (F&amp;O; Helber e Sahling, 2010), que parte da escala do SA e reotimiza, em sequência, janelas de 7 dias e pares de enfermeiros com o solver livre HiGHS. Todos os métodos rodaram nas mesmas 8 instâncias, com o <b>mesmo limite de 300 s</b> e 1 thread. O Gurobi rodou em um Intel i5-13400; as metaheurísticas, com 3 sementes cada, em um servidor Intel Xeon de 2,1 GHz, mais lento por núcleo, o que não as favorece. Reportamos o custo médio e o melhor. Os custos das metaheurísticas foram recalculados pelo avaliador independente, e o do Gurobi pelo próprio modelo com a escala fixada, que é equivalente ao avaliador; todas as escalas são viáveis, isto é, não violam nenhuma restrição rígida.</p>
+<p>Comparamos o método exato da Etapa 5 (modelo de PLI no AMPL, resolvido pelo Gurobi 13.0.3) com os três métodos aproximados da Etapa 4, que compartilham a mesma representação (turno e habilidade de cada enfermeiro em cada dia), as mesmas vizinhanças N1–N4 e a mesma avaliação incremental do custo, compilada com o numba: o <b>GRASP</b> com busca local VND (Feo e Resende, 1995), o <b>Simulated Annealing</b> (SA; Kirkpatrick et al., 1983) e a matheurística <b>Fix-and-Optimize</b> (F&amp;O; Helber e Sahling, 2010), que parte da escala do SA e reotimiza, em sequência, janelas de 7 dias e pares de enfermeiros com o solver livre HiGHS.</p>
+<p><b>Estratégias novas (versão 4).</b> Seguindo a discussão com o professor, acrescentamos três estratégias e as testamos antes de usá-las: (i) <b>desempate por gravidade</b>: quando dois movimentos têm o mesmo custo, prevalece o que deixa violações menos graves (cobertura &gt; folgas &gt; dias de trabalho seguidos &gt; fins de semana &gt; turnos e totais &gt; pedidos); (ii) <b>penalidade dinâmica</b> das regras rígidas no SA: o peso λ da falta de cobertura mínima e das sucessões proibidas cai quando a escala está viável há algum tempo e sobe quando não está, como em Gendreau, Hertz e Laporte (1994), o que faz a busca oscilar em torno da fronteira da viabilidade; (iii) <b>construção gulosa-amostral</b> no GRASP: em vez da lista restrita de candidatos, sorteiam-se <i>p</i> candidatos e escolhe-se o melhor (Resende e Ribeiro, 2016). A configuração de cada método foi escolhida em 4 instâncias de calibração <b>fora</b> do conjunto de teste <!--CALIB6-->(resultado na Seção 3)<!--/CALIB6-->.</p>
+<p><b>Configuração.</b> Todos os métodos rodaram nas mesmas 8 instâncias, com o <b>mesmo limite de 300 s</b> e 1 thread. O Gurobi rodou em um Intel i5-13400 (Etapa 5), e também com <b>1 hora</b> por instância, a pedido do professor. As metaheurísticas rodaram com 3 sementes cada em um servidor Intel Xeon de 2 núcleos, onde também repetimos a versão 3 (sem as estratégias novas) com as mesmas sementes, para medir o efeito delas na mesma máquina. Os custos foram recalculados pelo avaliador independente; todas as escalas são viáveis.</p>
 
 <h2>2. Qualidade da solução e tempo</h2>
 <table class="nw">
@@ -41,6 +43,14 @@
 </tbody></table>
 <p class="legenda">Tabela 2. Resumo por método (custo médio de cada metaheurística). Tempo até a melhor escala: média, sobre as 16 execuções, do instante da última melhoria; não registrado para o Gurobi.</p>
 
+<table class="nw">
+<thead><tr><th class="l">Método</th><th class="l">Estratégias da versão 4</th><th>Dist. média<br>versão 3</th><th>Dist. média<br>versão 4</th><th>Instâncias em que<br>a v4 foi melhor</th></tr></thead>
+<tbody>
+<!--LINHAS_ESTRATEGIAS-->
+<!--/LINHAS_ESTRATEGIAS-->
+</tbody></table>
+<p class="legenda">Tabela 3. Efeito das estratégias novas: versão 3 × versão 4 na mesma máquina, com as mesmas 3 sementes e 300 s (distância média do custo médio ao melhor publicado).</p>
+
 <h2>3. Análise</h2>
 <!--ANALISE6-->
 <p><b>Qualidade.</b> A matheurística SA + F&amp;O teve o melhor custo médio nas 8 instâncias (na n060w4, empate prático com o SA: 2.797 contra 2.800), com distância média de 17,3% ao melhor valor publicado, contra 22,3% do SA, 146,0% do GRASP e 353,8% do método exato. Em seis das oito instâncias, a escala média do SA + F&amp;O ficou a no máximo 16,3% do melhor publicado; na n030w4, as melhores escalas do F&amp;O e do SA (1.735 e 1.730) ficaram a menos de 4% do ótimo. As exceções são a n040w8 (+27%) e a n060w8 (+45%). O Gurobi só foi competitivo na n030w4, a menor instância (1.785, a 6,9% do ótimo); nas de 8 semanas, as escalas do SA + F&amp;O custam de 2,1 vezes (n030w8) a 8,6 vezes (n060w8) menos que as dele.</p>
@@ -53,7 +63,9 @@
 <div class="ref">
 <p>Feo, T. A. e Resende, M. G. C. (1995). Greedy randomized adaptive search procedures. <i>Journal of Global Optimization</i>, 6(2):109–133.</p>
 <p>Helber, S. e Sahling, F. (2010). A fix-and-optimize approach for the multi-level capacitated lot sizing problem. <i>International Journal of Production Economics</i>, 123(2):247–256.</p>
+<p>Gendreau, M., Hertz, A. e Laporte, G. (1994). A tabu search heuristic for the vehicle routing problem. <i>Management Science</i>, 40(10):1276–1290.</p>
 <p>Kirkpatrick, S., Gelatt, C. D. e Vecchi, M. P. (1983). Optimization by simulated annealing. <i>Science</i>, 220(4598):671–680.</p>
 <p>Legrain, A. e Omer, J. (2023). A dedicated pricing algorithm to solve a large family of nurse scheduling problems with branch-and-price. <i>Les Cahiers du GERAD</i>, G-2023-02, HEC Montréal.</p>
+<p>Resende, M. G. C. e Ribeiro, C. C. (2016). <i>Optimization by GRASP: Greedy Randomized Adaptive Search Procedures</i>. Springer, Nova York. Cap. 7: Extended construction heuristics, p. 147–166.</p>
 </div>
 </body></html>

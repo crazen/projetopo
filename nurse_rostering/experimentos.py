@@ -7,7 +7,7 @@ Uso:
   python experimentos.py --dados dados --metodos grasp+am3+des,sa+din+des,fo+din+des --tempo 300
 
 Opcoes de cada metodo (versao 4, depois de '+'; sem opcoes = versao 3):
-  din  penalidade dinamica das regras hard (SA e a fase SA do F&O)
+  din  penalidade dinamica das regras hard (SA e a fase SA do F&O); dinS = versao suave (viavel 80-98% do tempo)
   des  desempate por gravidade (GRASP, SA e a fase SA do F&O)
   amN  GRASP com construcao gulosa-amostral: o melhor de N candidatos sorteados (am10p = 10% dos candidatos)
 
@@ -69,6 +69,8 @@ def opcoes(metodo):
     for f in flags:
         if f == "din" and base in ("sa", "fo"):
             kw["penalidade"] = "dinamica"
+        elif f == "dinS" and base in ("sa", "fo"):          # oscilacao mais suave: fica viavel 80-98% do tempo
+            kw.update(penalidade="dinamica", viab_baixa=0.8, viab_alta=0.98, lam_min=10.0)
         elif f == "des" and base in ("grasp", "sa", "fo"):
             kw["desempate"] = True
         elif f.startswith("am") and base == "grasp":

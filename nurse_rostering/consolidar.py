@@ -6,10 +6,13 @@ Entradas (nesta pasta):
   resultados_ampl_ajustado.csv       Gurobi via AMPL, parametros ajustados (CFG = 'ajustado'), 300 s  [opcional]
   resultados_highs_final.csv         mesmo modelo no HiGHS (exato.py), 300 s
   relaxacao_linear.csv               limite da relaxacao linear do modelo (relaxacao.py)
-  resultados/v3_*.csv                GRASP, SA e Fix-and-Optimize, 300 s, varias sementes (rodar_experimentos.py)
-  resultados/v3_*_convergencia.json  historico (tempo, melhor custo) de cada execucao heuristica
+  resultados/v4_*.csv                GRASP, SA e Fix-and-Optimize da VERSAO 4 (estrategias novas: FINAL abaixo) e,
+                                     na mesma maquina, as configuracoes da versao 3 (BASE), 300 s, 3 sementes
+  resultados/v3_*.csv                execucoes da versao 3 no servidor anterior (so se faltar a v4)
+  resultados/*_convergencia.json     historico (tempo, melhor custo) de cada execucao heuristica
+  resultados_gurobi_longo.csv        Gurobi com 3600 s (rodar_gurobi_longo.py no PC)   [opcional]
 Saidas:
-  resultados_v3.csv                  todas as execucoes heuristicas
+  resultados_v4.csv                  todas as execucoes heuristicas usadas
   comparacao_final.csv               uma linha por instancia, todos os metodos
   ../entregas/fonte/fig_gap.png      custo / melhor valor publicado, por instancia e metodo
   ../entregas/fonte/fig_convergencia.png
@@ -27,6 +30,10 @@ RES = os.path.join(AQUI, "resultados")
 FIG = os.path.join(AQUI, "..", "entregas", "fonte")
 ORDEM = ["n030w4", "n040w4", "n050w4", "n060w4", "n030w8", "n040w8", "n050w8", "n060w8"]
 METODOS = ["grasp", "sa", "fo"]
+# Versao 4: configuracao final de cada metaheuristica, escolhida na calibracao (calibracao/v4, instancias FORA do
+# conjunto final). Opcoes: din = penalidade dinamica, des = desempate por gravidade, amN = GRASP amostral.
+FINAL = {"grasp": "grasp+am3+des", "sa": "sa+dinS", "fo": "fo+dinS"}
+BASE = {"grasp": "grasp", "sa": "sa", "fo": "fo"}          # versao 3 (sem as estrategias novas), mesma maquina
 ROTULO = {"gurobi": "Gurobi", "grasp": "GRASP", "sa": "SA", "fo": "SA+F&O"}
 # paleta categorica de referencia (validada: adjacente CVD >= 9,1; contraste baixo compensado por rotulos)
 COR = {"Gurobi": "#2a78d6", "GRASP": "#eb6834", "SA": "#1baf7a", "SA+F&O": "#eda100"}
@@ -43,24 +50,44 @@ def ler_ampl(arq):
     return g.assign(inst=g.instancia.map(curto)).set_index("inst")
 
 
+def agregar(df):
+    return df.groupby(["inst", "metodo"]).agg(medio=("custo", "mean"), melhor=("custo", "min"), dp=("custo", "std"),
+                                              n=("semente", "nunique"), it=("iteracoes", "mean"),
+                                              tmelhor=("tempo_melhor_s", "mean")).unstack()
+
+
 def carregar():
     os.chdir(AQUI)
-    v3 = pd.concat([pd.read_csv(f) for f in sorted(glob.glob(os.path.join(RES, "v3_*.csv")))], ignore_index=True)
-    v3.to_csv("resultados_v3.csv", index=False)
-    assert v3.viavel.all(), "ha execucao inviavel"
-    dup = v3.duplicated(["instancia", "metodo", "semente"])
-    assert not dup.any(), f"execucoes repetidas (mesma instancia, metodo e semente): {v3[dup].values.tolist()}"
-    v3["inst"] = v3.instancia.map(curto)
+    ler = lambda pad: pd.concat([pd.read_csv(f) for f in sorted(glob.glob(os.path.join(RES, pad)))], ignore_index=True) \
+        if glob.glob(os.path.join(RES, pad)) else pd.DataFrame(columns=["instancia", "metodo"])
+    v4 = ler("v4_*.csv"); v3 = ler("v3_*.csv")
+    for df in (v4, v3):
+        if len(df):
+            assert df.viavel.all(), "ha execucao inviavel"
+            dup = df.duplicated(["instancia", "metodo", "semente"])
+            assert not dup.any(), f"execucoes repetidas: {df[dup].values.tolist()}"
+        df["inst"] = df.instancia.map(curto)
+    usados = []
+    origem = {}
+
+    def pegar(metodo, papel):
+        """Execucoes de um metodo: da v4 (mesma maquina) se completas; senao, da v3 antiga."""
+        a = v4[v4.metodo == metodo]
+        if len(a) and set(a.inst) >= set(ORDEM):
+            origem[papel] = "v4"; usados.append(a); return a
+        b = v3[v3.metodo == metodo]
+        if len(b):
+            origem[papel] = "v3 (servidor anterior)"; usados.append(b); return b
+        origem[papel] = "faltando"; return None
+
     hig = pd.read_csv("resultados_highs_final.csv").assign(inst=lambda d: d.instancia.map(curto)).set_index("inst")
     gur = ler_ampl("resultados_ampl_final.csv")
     pl = pd.read_csv("relaxacao_linear.csv").assign(inst=lambda d: d.instancia.map(curto)).set_index("inst")
-    lit = v3.groupby("inst")[["enfermeiros", "semanas", "lb_literatura", "ub_literatura"]].first()
-    agg = v3.groupby(["inst", "metodo"]).agg(medio=("custo", "mean"), melhor=("custo", "min"),
-                                             dp=("custo", "std"), n=("semente", "nunique"),
-                                             it=("iteracoes", "mean"), tmelhor=("tempo_melhor_s", "mean")).unstack()
+    lit = pd.read_csv("referencias_literatura.csv").assign(inst=lambda d: d.instancia.map(curto))
+    lit = lit[lit.instancia.isin(gur.instancia)].set_index("inst")
     t = pd.DataFrame(index=ORDEM)
-    t["N"] = lit.enfermeiros; t["sem"] = lit.semanas
     t["lb_lit"] = lit.lb_literatura; t["ub_lit"] = lit.ub_literatura
+    t["N"] = [int(i[1:4]) for i in ORDEM]; t["sem"] = [int(i[-1]) for i in ORDEM]
     t["pl"] = pl.limite_pl; t["pl_sobre_ub"] = pl.pl_sobre_melhor
     t["gurobi"] = gur.custo; t["gurobi_lb"] = gur.limite_inferior.round(0); t["gurobi_gap"] = gur["gap_%"]
     t["gurobi_t"] = gur.tempo_s; t["gurobi_status"] = gur.status
@@ -68,18 +95,36 @@ def carregar():
         aj = ler_ampl("resultados_ampl_ajustado.csv")
         t["gurobi_aj"] = aj.custo; t["gurobi_aj_lb"] = aj.limite_inferior.round(0); t["gurobi_aj_gap"] = aj["gap_%"]
         t["gurobi_aj_t"] = aj.tempo_s; t["gurobi_aj_status"] = aj.status
+    if os.path.exists("resultados_gurobi_longo.csv"):          # Gurobi com 1 hora (mesmo metodo da Etapa 5)
+        gl = pd.read_csv("resultados_gurobi_longo.csv")
+        gl = gl[(gl.cfg == "puro") & (gl.threads == 1) & (gl.tempo_limite_s == 3600)]
+        gl = gl.assign(inst=gl.instancia.map(curto)).drop_duplicates("inst", keep="last").set_index("inst")
+        t["gurobi_1h"] = gl.custo; t["gurobi_1h_lb"] = gl.limite_inferior.round(0); t["gurobi_1h_gap"] = gl["gap_%"]
+        t["gurobi_1h_t"] = gl.tempo_s; t["gurobi_1h_otimo"] = gl.otimo_provado
     t["highs"] = hig.custo; t["highs_lb"] = hig.limite_inferior
-    for m in METODOS:
-        t[f"{m}_medio"] = agg[("medio", m)]; t[f"{m}_melhor"] = agg[("melhor", m)]; t[f"{m}_it"] = agg[("it", m)]
-        t[f"{m}_dp"] = agg[("dp", m)].round(1); t[f"{m}_tmelhor"] = agg[("tmelhor", m)].round(0)
-    t["n_sem"] = int(agg["n"].min().min())              # sementes por (instancia, metodo); o minimo, por seguranca
-    cols = ["gurobi", "highs"] + (["gurobi_aj"] if "gurobi_aj" in t else []) + \
-           [f"{m}_{q}" for m in METODOS for q in ("medio", "melhor")]
+    nsem = []
+    for papel, mapa in (("", FINAL), ("base_", BASE)):
+        for m in METODOS:
+            df = pegar(mapa[m], papel + m)
+            if df is None:
+                continue
+            agg = agregar(df)
+            pre = f"{m}_" if papel == "" else f"{m}_v3_"
+            t[pre + "medio"] = agg[("medio", mapa[m])]; t[pre + "melhor"] = agg[("melhor", mapa[m])]
+            t[pre + "it"] = agg[("it", mapa[m])]; t[pre + "dp"] = agg[("dp", mapa[m])].round(1)
+            t[pre + "tmelhor"] = agg[("tmelhor", mapa[m])].round(0)
+            nsem.append(int(agg[("n", mapa[m])].min()))
+    t["n_sem"] = min(nsem) if nsem else 0
+    cols = ["gurobi", "highs"] + [c for c in ("gurobi_aj", "gurobi_1h") if c in t] + \
+           [c for m in METODOS for c in (f"{m}_medio", f"{m}_melhor", f"{m}_v3_medio", f"{m}_v3_melhor") if c in t]
     for m in cols:
         t[f"dev_{m}"] = (100 * (t[m] - t.ub_lit) / t.ub_lit).round(1)
     t.index.name = "instancia"
     t.to_csv("comparacao_final.csv")
-    return t, v3
+    if usados:
+        pd.concat(usados, ignore_index=True).to_csv("resultados_v4.csv", index=False)
+    print("origem das execucoes:", origem)
+    return t, pd.concat(usados, ignore_index=True) if usados else None
 
 
 def estilo(ax):
@@ -121,7 +166,8 @@ def fig_gap(t):
 def fig_convergencia(inst="n040w8", limite=300):
     """Melhor custo ao longo do tempo, semente 1 de cada metodo."""
     conv = {}
-    for f in glob.glob(os.path.join(RES, "v3_*_convergencia.json")):
+    for f in sorted(glob.glob(os.path.join(RES, "v3_*_convergencia.json"))) + \
+             sorted(glob.glob(os.path.join(RES, "v4_*_convergencia.json"))):
         conv.update(json.load(open(f)))
     plt.rcParams["font.family"] = ["Times New Roman", "DejaVu Serif"]
     fig, ax = plt.subplots(figsize=(6.4, 3.2), dpi=200)
@@ -129,8 +175,10 @@ def fig_convergencia(inst="n040w8", limite=300):
     teto = 0; finais = []
     for m in METODOS:
         rot = ROTULO[m]
-        k = next(k for k in conv if k.startswith(inst) and k.endswith(f"|{m}|1"))
+        k = next(k for k in conv if k.startswith(inst) and k.endswith(f"|{FINAL[m]}|1"))
         pts = [(t_, c) for t_, c in conv[k] if c != float("inf") and c < 10000]   # so o trecho viavel
+        if not pts:
+            continue
         xs = [p[0] for p in pts] + [limite]; ys = [p[1] for p in pts] + [pts[-1][1]]
         ax.step(xs, ys, where="post", color=COR[rot], linewidth=2, label=rot)
         finais.append((ys[-1], rot))
@@ -161,10 +209,11 @@ def fig_convergencia(inst="n040w8", limite=300):
 if __name__ == "__main__":
     t, v3 = carregar()
     pd.set_option("display.width", 250)
-    print(t[["N", "sem", "ub_lit", "pl", "gurobi", "highs"] + [f"{m}_medio" for m in METODOS]
-            + [f"dev_{m}_medio" for m in METODOS]].to_string())
+    cols = [c for c in ["ub_lit", "pl", "gurobi", "gurobi_1h"] + [f"{m}{v}_medio" for m in METODOS for v in ("_v3", "")]
+            if c in t]
+    print(t[cols].round(0).to_string())
     print("distancia media ao melhor publicado (%):",
-          {m: round(t[f"dev_{m}"].mean(), 1) for m in ["gurobi", "highs"] + [f"{x}_medio" for x in METODOS]})
+          {c: round(t[f"dev_{c}"].mean(), 1) for c in cols[2:] if f"dev_{c}" in t})
     fig_gap(t)
     fig_convergencia()
     print("figuras em", os.path.abspath(FIG))

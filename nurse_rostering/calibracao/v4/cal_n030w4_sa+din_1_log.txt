@@ -1,0 +1,6 @@
+1 instancias x ['sa+din'], 300s cada -> /home/claude/projetopo/nurse_rostering/calibracao/v4/cal_n030w4_sa+din_1.csv
+
+== n030w4_H1_WD6-7-5-3  sa+din  semente=1
+    {'custo': 1975, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.0, 'iteracoes': 360220000}
+
+resultados em /home/claude/projetopo/nurse_rostering/calibracao/v4/cal_n030w4_sa+din_1.csv
