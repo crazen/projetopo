@@ -48,6 +48,16 @@ def ordem_enfermeiros(inst):
     return sorted(range(inst.N), key=chave)
 
 
+def blocos_enfermeiros(ordem, L, max_livres):
+    """Para janelas de L dias: grupos de enfermeiros (consecutivos na ordem por habilidade/contrato) com no maximo
+    max_livres enfermeiro-dias livres por subproblema; sem limite (ou se couber), um grupo so com todos."""
+    N = len(ordem)
+    if not max_livres or L * N <= max_livres:
+        return [frozenset(ordem)]
+    g = max(2, max_livres // L)
+    return decomposicao_enfermeiros(ordem, g)
+
+
 def decomposicao_enfermeiros(ordem, k):
     """Grupos de k enfermeiros consecutivos na ordem, com 50% de sobreposicao."""
     N = len(ordem); k = min(k, N); passo = max(1, k // 2)
@@ -58,8 +68,10 @@ def decomposicao_enfermeiros(ordem, k):
 
 
 def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, L0=7, k0=2,
-       verbose=True, sched_inicial=None, sa_kw=None):
-    """sa_kw: opcoes do SA da fase inicial (por exemplo penalidade='dinamica', desempate=True)."""
+       verbose=True, sched_inicial=None, sa_kw=None, max_livres=None):
+    """sa_kw: opcoes do SA da fase inicial (por exemplo penalidade='dinamica', desempate=True).
+    max_livres: tamanho maximo (enfermeiro-dias livres) de um subproblema de janela; acima disso, a janela e
+    dividida em grupos de enfermeiros parecidos (versao 4b). None = janela com todos os enfermeiros."""
     t0 = time.time(); prazo = t0 + limite
     # ---- solucao inicial
     historico = []
@@ -83,7 +95,8 @@ def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, 
     passadas = subproblemas = otimos = melhoras = 0
     while time.time() < prazo - 1:
         passadas += 1
-        subs = ([("dias", jan) for jan in decomposicao_dias(inst.D, L)] +
+        subs = ([("dias", (jan, bl)) for jan in decomposicao_dias(inst.D, L)
+                 for bl in blocos_enfermeiros(ordem, min(L, inst.D), max_livres)] +
                 [("enf", g) for g in decomposicao_enfermeiros(ordem, k)])
         melhorou_passada = False
         for tipo, parte in subs:
@@ -91,8 +104,8 @@ def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, 
             if resta < 1:
                 break
             if tipo == "dias":
-                a, b = parte
-                livre = lambda n, d, a=a, b=b: a <= d < b
+                (a, b), bl = parte
+                livre = lambda n, d, a=a, b=b, bl=bl: a <= d < b and n in bl
             else:
                 livre = lambda n, d, g=parte: n in g
             m.fixar(atual, livre)
@@ -105,7 +118,8 @@ def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, 
                     melhoras += 1; melhorou_passada = True
                     historico.append((round(time.time() - t0, 2), custo))
                     if verbose:
-                        desc = f"dias {parte[0]}-{parte[1] - 1}" if tipo == "dias" else f"{len(parte)} enfermeiros"
+                        desc = (f"dias {parte[0][0]}-{parte[0][1] - 1} x {len(parte[1])} enf." if tipo == "dias"
+                                else f"{len(parte)} enfermeiros")
                         print(f"  passada {passadas} (L={L}, k={k})  t={time.time() - t0:6.1f}s  {desc:16s} -> {custo}",
                               flush=True)
         if not melhorou_passada and time.time() < prazo - 1:

@@ -104,6 +104,18 @@ def carregar():
         t["gurobi_1h"] = gl.custo; t["gurobi_1h_lb"] = gl.limite_inferior.round(0); t["gurobi_1h_gap"] = gl["gap_%"]
         t["gurobi_1h_t"] = gl.tempo_s; t["gurobi_1h_otimo"] = gl.otimo_provado
     t["highs"] = hig.custo; t["highs_lb"] = hig.limite_inferior
+    # 1 hora por instancia (mesmo metodo e parametros, so o tempo muda; 1 semente): resultados_1h/h1_*.csv
+    fs1 = [f for f in sorted(glob.glob(os.path.join(AQUI, "resultados_1h", "h1_*.csv")))
+           if open(f).read().count("\n") >= 2]
+    if fs1:
+        h1 = pd.concat([pd.read_csv(f) for f in fs1], ignore_index=True)
+        assert h1.viavel.all(), "ha execucao de 1 h inviavel"
+        h1["inst"] = h1.instancia.map(curto)
+        for m in METODOS:
+            d = h1[h1.metodo == FINAL[m]].set_index("inst")
+            if len(d):
+                t[f"{m}_1h"] = d.custo; t[f"{m}_1h_tmelhor"] = d.tempo_melhor_s.round(0)
+                t[f"{m}_1h_it"] = d.iteracoes
     nsem = []
     for papel, mapa in (("", FINAL), ("base_", BASE)):
         for m in METODOS:
@@ -117,7 +129,7 @@ def carregar():
             t[pre + "tmelhor"] = agg[("tmelhor", mapa[m])].round(0)
             nsem.append(int(agg[("n", mapa[m])].min()))
     t["n_sem"] = min(nsem) if nsem else 0
-    cols = ["gurobi", "highs"] + [c for c in ("gurobi_aj", "gurobi_1h") if c in t] + \
+    cols = ["gurobi", "highs"] + [c for c in ("gurobi_aj", "gurobi_1h", "grasp_1h", "sa_1h", "fo_1h") if c in t] + \
            [c for m in METODOS for c in (f"{m}_medio", f"{m}_melhor", f"{m}_v3_medio", f"{m}_v3_melhor") if c in t]
     for m in cols:
         t[f"dev_{m}"] = (100 * (t[m] - t.ub_lit) / t.ub_lit).round(1)
@@ -212,7 +224,7 @@ if __name__ == "__main__":
     t, v3 = carregar()
     pd.set_option("display.width", 250)
     cols = [c for c in ["ub_lit", "pl", "gurobi", "gurobi_1h"] + [f"{m}{v}_medio" for m in METODOS for v in ("_v3", "")]
-            if c in t]
+            + ["sa_1h", "fo_1h"] if c in t]
     print(t[cols].round(0).to_string())
     print("distancia media ao melhor publicado (%):",
           {c: round(t[f"dev_{c}"].mean(), 1) for c in cols[2:] if f"dev_{c}" in t})
