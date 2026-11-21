@@ -58,14 +58,15 @@ def decomposicao_enfermeiros(ordem, k):
 
 
 def fo(inst, limite=300, semente=0, frac_inicial=0.5, sub_limite=30, threads=1, L0=7, k0=2,
-       verbose=True, sched_inicial=None):
+       verbose=True, sched_inicial=None, sa_kw=None):
+    """sa_kw: opcoes do SA da fase inicial (por exemplo penalidade='dinamica', desempate=True)."""
     t0 = time.time(); prazo = t0 + limite
     # ---- solucao inicial
     historico = []
     if sched_inicial is None:
-        r0 = sa(inst, limite=frac_inicial * limite, semente=semente, verbose=False)
+        r0 = sa(inst, limite=frac_inicial * limite, semente=semente, verbose=False, **(sa_kw or {}))
         atual = r0["sched"]
-        historico = list(r0["historico"])     # convergencia da fase SA (mesmo relogio, comeca em t0)
+        historico = [hc for hc in r0["historico"] if hc[1] != float("inf")]   # fase SA (mesmo relogio)
     else:
         atual = sched_inicial
     hard, _, custo = evaluate(inst, atual)

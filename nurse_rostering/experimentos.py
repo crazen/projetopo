@@ -4,6 +4,12 @@ os resultados em CSV (uma linha por execucao, gravada assim que termina; nada se
 Uso:
   python experimentos.py --dados dados --tempo 60
   python experimentos.py --dados dados --instancias instancias.txt --metodos exato,grasp,sa,fo --tempo 120 --sementes 3
+  python experimentos.py --dados dados --metodos grasp+am3+des,sa+din+des,fo+din+des --tempo 300
+
+Opcoes de cada metodo (versao 4, depois de '+'; sem opcoes = versao 3):
+  din  penalidade dinamica das regras hard (SA e a fase SA do F&O)
+  des  desempate por gravidade (GRASP, SA e a fase SA do F&O)
+  amN  GRASP com construcao gulosa-amostral: o melhor de N candidatos sorteados (am10p = 10% dos candidatos)
 
 Arquivo de instancias (uma por linha:  pasta  historico  semanas):
   n005w4 0 1,2,3,3
@@ -56,6 +62,23 @@ def carregar_lista(dados, arquivo):
     return out
 
 
+def opcoes(metodo):
+    """'sa+din+des' -> ('sa', {'penalidade': 'dinamica', 'desempate': True})."""
+    base, *flags = metodo.split("+")
+    kw = {}
+    for f in flags:
+        if f == "din" and base in ("sa", "fo"):
+            kw["penalidade"] = "dinamica"
+        elif f == "des" and base in ("grasp", "sa", "fo"):
+            kw["desempate"] = True
+        elif f.startswith("am") and base == "grasp":
+            v = f[2:]
+            kw["amostra"] = float(v[:-1]) / 100 if v.endswith("p") else int(v)
+        else:
+            sys.exit(f"opcao '{f}' invalida para o metodo {base}")
+    return base, kw
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dados", required=True, help="pasta com os datasets (n005w4, n012w8, ...)")
@@ -72,6 +95,9 @@ def main():
 
     lista = carregar_lista(a.dados, a.instancias)
     metodos = [m.strip() for m in a.metodos.split(",")]
+    for m in metodos:
+        if m != "exato":
+            opcoes(m)
     novo = not os.path.exists(a.saida)
     if not novo and open(a.saida).readline().strip().split(",") != CAMPOS:
         sys.exit(f"{a.saida} foi gerado por outra versao (colunas diferentes): use outro nome em --saida")
@@ -95,14 +121,15 @@ def main():
                     lb = round(r["limite_inferior"], 1)
                     gap = round(100 * r["gap"], 1) if r["gap"] is not None else ""
                     it = r["status"]
-                elif metodo == "grasp":
-                    r = grasp(inst, limite=a.tempo, alpha=a.alpha, semente=sem, verbose=False)
+                elif opcoes(metodo)[0] == "grasp":
+                    r = grasp(inst, limite=a.tempo, alpha=a.alpha, semente=sem, verbose=False, **opcoes(metodo)[1])
                     it = r["iteracoes"]
-                elif metodo == "sa":
-                    r = sa(inst, limite=a.tempo, semente=sem, verbose=False)
+                elif opcoes(metodo)[0] == "sa":
+                    r = sa(inst, limite=a.tempo, semente=sem, verbose=False, **opcoes(metodo)[1])
                     it = r["iteracoes"]
-                elif metodo == "fo":
-                    r = fo(inst, limite=a.tempo, semente=sem, threads=a.threads, verbose=False)
+                elif opcoes(metodo)[0] == "fo":
+                    r = fo(inst, limite=a.tempo, semente=sem, threads=a.threads, verbose=False,
+                           sa_kw=opcoes(metodo)[1])
                     it = r["iteracoes"]
                 else:
                     sys.exit("metodo desconhecido: " + metodo)

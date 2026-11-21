@@ -36,8 +36,11 @@ def instancias(arquivo):
     return out
 
 
+PASTA, PREFIXO = "resultados", "v3"       # trocados por --pasta e --prefixo
+
+
 def nome_saida(spec, metodo, sem):
-    return os.path.join(AQUI, "resultados", f"v3_{spec.split()[0]}_{metodo}_{sem}.csv")
+    return os.path.join(AQUI, PASTA, f"{PREFIXO}_{spec.split()[0]}_{metodo}_{sem}.csv")
 
 
 def concluida(saida):
@@ -90,7 +93,12 @@ def main():
     ap.add_argument("--instancias", default="instancias_final.txt")
     ap.add_argument("--dados", default=os.path.join("..", "dados"))
     ap.add_argument("--so-consolidar", action="store_true")
+    ap.add_argument("--sem-consolidar", action="store_true", help="so roda (ex.: calibracao)")
+    ap.add_argument("--pasta", default="resultados", help="pasta de saida (relativa a nurse_rostering)")
+    ap.add_argument("--prefixo", default="v3", help="prefixo dos arquivos (v3 = versao anterior; v4 = atual)")
     a = ap.parse_args()
+    global PASTA, PREFIXO
+    PASTA, PREFIXO = a.pasta, a.prefixo
     if a.processos > 6:
         sys.exit("use no maximo 6 processos (6 nucleos rapidos); mais que isso distorce os tempos")
     if not a.so_consolidar:
@@ -99,9 +107,9 @@ def main():
         todas = [(s, m, k) for s in instancias(a.instancias) for m in a.metodos.split(",")
                  for k in range(a.de, a.ate + 1)]
         pend = [t for t in todas if not concluida(nome_saida(*t))]
-        os.makedirs(os.path.join(AQUI, "resultados"), exist_ok=True)
+        os.makedirs(os.path.join(AQUI, PASTA), exist_ok=True)
         # F&O primeiro (monta o modelo; mais memoria), para equilibrar o fim
-        pend.sort(key=lambda t: (t[1] != "fo", t[0]))
+        pend.sort(key=lambda t: (not t[1].startswith("fo"), t[0]))
         est = len(pend) * a.tempo / a.processos / 60
         print(f"{len(todas)} tarefas ({len(todas) - len(pend)} ja feitas), {len(pend)} a rodar com {a.processos} "
               f"processos: ~{est:.0f} min (+ preparacao dos modelos)", flush=True)
@@ -110,9 +118,10 @@ def main():
             futs = [ex.submit(tarefa, s, m, k, a.tempo, a.dados) for s, m, k in pend]
             for f in as_completed(futs):
                 inst, m, k, rc, dt = f.result(); feitas += 1
-                st = "ok" if rc == 0 else f"ERRO (codigo {rc}; veja resultados/v3_{inst}_{m}_{k}_log.txt)"
+                st = "ok" if rc == 0 else f"ERRO (codigo {rc}; veja {PASTA}/{PREFIXO}_{inst}_{m}_{k}_log.txt)"
                 print(f"  [{feitas:3d}/{len(pend)}] {inst} {m} semente {k}: {st} ({dt / 60:.1f} min)", flush=True)
-    consolidar_tudo()
+    if not a.sem_consolidar:
+        consolidar_tudo()
 
 
 if __name__ == "__main__":

@@ -5,6 +5,9 @@ GRASP (Greedy Randomized Adaptive Search Procedure; Feo e Resende, 1995) repete,
      calcula o custo incremental de cada enfermeiro candidato e sorteia um da Lista Restrita de Candidatos:
         RCL = { candidatos com custo <= c_min + alpha * (c_max - c_min) }
      alpha = 0 -> guloso puro (sempre o melhor);  alpha = 1 -> totalmente aleatorio.
+     Variante AMOSTRAL ("sampled greedy", Resende e Ribeiro, 2016, cap. 7; sugestao do professor): em vez da
+     RCL, sorteia uma amostra de p candidatos e escolhe, de forma gulosa, o melhor da amostra
+     (p inteiro >= 1 = numero de candidatos; 0 < p < 1 = fracao dos candidatos).
   2. BUSCA LOCAL VND (Variable Neighborhood Descent; Mladenovic e Hansen, 1997), da vizinhanca mais barata
      para a mais cara, com primeira melhora e ordem aleatoria dos movimentos:
         N1 troca : muda a atribuicao de um enfermeiro em um dia (outro turno/habilidade, ou folga)
@@ -13,6 +16,8 @@ GRASP (Greedy Randomized Adaptive Search Procedure; Feo e Resende, 1995) repete,
         N4 swap de bloco : dois enfermeiros trocam suas atribuicoes em L dias seguidos (L = 2, 3, 4, 5, 7)
      Quando uma vizinhanca encontra melhora, volta para N1; termina num otimo local das quatro vizinhancas.
      As vizinhancas sao percorridas POR COMPLETO (nucleo.py, compilado com numba).
+     Com desempate=True (sugestao do professor), um movimento de mesmo custo que reduz a GRAVIDADE das
+     violacoes (nucleo.GRAV_PADRAO) tambem e aceito: a busca anda no plato rumo a violacoes menos graves.
   3. Guarda a melhor solucao encontrada em todas as iteracoes.
 As iteracoes sao independentes: a diversificacao vem so da aleatorizacao da construcao (alpha).
 
@@ -20,10 +25,10 @@ Representacao: sid[n][d] = turno (-1 = folga) e skl[n][d] = habilidade usada (-1
 Restricoes hard (cobertura minima, sucessao proibida) entram no custo com peso GRANDE; a busca as elimina
 primeiro. Habilidade (H4) e um turno por dia (H1) sao garantidos pela propria representacao.
 
-Uso:  python grasp.py <pasta_dataset> <h> <semanas> [limite_s] [alpha] [semente]
-Ex.:  python grasp.py ../dados/n005w4 0 1,2,3,3 30 0.15 1
+Uso:  python grasp.py <pasta_dataset> <h> <semanas> [limite_s] [alpha] [semente] [amostra p] [0|1 desempate]
+Ex.:  python grasp.py ../dados/n005w4 0 1,2,3,3 30 0.15 1 3 1
 """
-import sys, time, random
+import math, sys, time, random
 from inrc2 import load_instance, evaluate, is_feasible, print_schedule, W_S1, W_TOTAL
 from custo_rapido import custo_enf
 import nucleo as C
@@ -32,7 +37,7 @@ GRANDE = C.GRANDE        # peso de cada violacao hard dentro da heuristica
 
 
 # ==================================================================== construcao
-def construir(inst, alpha, rng, peso_ritmo=W_TOTAL / 2):
+def construir(inst, alpha, rng, peso_ritmo=W_TOTAL / 2, amostra=None):
     """Constroi uma escala dia a dia (gulosa-aleatorizada).
     Custo incremental de colocar o enfermeiro n no turno s no dia d =
         custo_enf(escala parcial dos dias 0..d com s em d) - custo_enf(mesma escala com folga em d)
@@ -63,44 +68,49 @@ def construir(inst, alpha, rng, peso_ritmo=W_TOTAL / 2):
                 cand = [(c, n) for (c, n) in cand if c < W_S1]
             if not cand:
                 continue
-            cmin = min(c for c, _ in cand); cmax = max(c for c, _ in cand)
-            rcl = [n for c, n in cand if c <= cmin + alpha * (cmax - cmin)]
-            n = rng.choice(rcl)
+            if amostra:                                 # gulosa-amostral: o melhor de p sorteados
+                p = amostra if amostra >= 1 else max(1, math.ceil(amostra * len(cand)))
+                am = rng.sample(cand, min(int(p), len(cand)))
+                n = min(am, key=lambda cn: cn[0])[1]
+            else:                                       # RCL classica
+                cmin = min(c for c, _ in cand); cmax = max(c for c, _ in cand)
+                rcl = [n for c, n in cand if c <= cmin + alpha * (cmax - cmin)]
+                n = rng.choice(rcl)
             sid[n][d], skl[n][d] = s, k
             livre[n] = False; trabalhados[n] += 1
     return sid, skl
 
 
 # ==================================================================== GRASP
-def grasp(inst, limite=60, alpha=0.15, semente=0, verbose=True):
+def grasp(inst, limite=60, alpha=0.15, semente=0, verbose=True, amostra=None, desempate=False, grav=None):
     """Executa o GRASP por 'limite' segundos. Retorna a melhor escala e o historico de convergencia."""
     rng = random.Random(semente)
     t0 = time.time(); prazo = t0 + limite
-    P = C.dados(inst)
+    P = C.dados(inst, grav)
     C.semear(semente)
     melhor, it, historico = None, 0, []
     custos_constr, custos_vnd = [], []
     while time.time() < prazo:
-        E = C.Escala(P, *construir(inst, alpha, rng))
-        c_constr = int(E.tot[0])
-        C.vnd(P, E.sid, E.skl, E.cnt, E.ncost, E.tot)
+        E = C.Escala(P, *construir(inst, alpha, rng, amostra=amostra))
+        c_constr = E.custo
+        C.vnd(P, *E.estado(), desempate)
         if time.time() > prazo and melhor is not None:
             break                                   # iteracao terminou depois do prazo: descartada
         it += 1
-        custos_constr.append(c_constr); custos_vnd.append(int(E.tot[0]))
-        if melhor is None or E.tot[0] < melhor.tot[0]:
+        custos_constr.append(c_constr); custos_vnd.append(E.custo)
+        if melhor is None or C.melhor_que(E.tot, melhor.tot, desempate):
             melhor = E
-            historico.append((round(time.time() - t0, 2), int(E.tot[0])))
+            historico.append((round(time.time() - t0, 2), E.custo))
             if verbose:
-                print(f"  it {it:4d}  t={time.time() - t0:6.1f}s  construcao={c_constr:>7}  VND={E.tot[0]:>6}  *",
+                print(f"  it {it:4d}  t={time.time() - t0:6.1f}s  construcao={c_constr:>7}  VND={E.custo:>6}  *",
                       flush=True)
     sched = melhor.sched()
     hard, comp, custo = evaluate(inst, sched)
-    if is_feasible(hard) and custo != melhor.tot[0]:
-        print(f"  AVISO: custo incremental ({melhor.tot[0]}) != avaliador ({custo})")
+    if is_feasible(hard) and custo != melhor.custo:
+        print(f"  AVISO: custo incremental ({melhor.custo}) != avaliador ({custo})")
     return dict(sched=sched, custo=custo, viavel=is_feasible(hard), hard=hard, componentes=comp,
                 iteracoes=it, tempo=time.time() - t0, historico=historico,
-                custo_incremental=int(melhor.tot[0]), custos_construcao=custos_constr, custos_vnd=custos_vnd)
+                custo_incremental=melhor.custo, custos_construcao=custos_constr, custos_vnd=custos_vnd)
 
 
 if __name__ == "__main__":
@@ -110,8 +120,10 @@ if __name__ == "__main__":
     limite = float(sys.argv[4]) if len(sys.argv) > 4 else 60
     alpha = float(sys.argv[5]) if len(sys.argv) > 5 else 0.15
     semente = int(sys.argv[6]) if len(sys.argv) > 6 else 0
+    am = float(sys.argv[7]) if len(sys.argv) > 7 else None
+    des = len(sys.argv) > 8 and sys.argv[8] == "1"
     inst = load_instance(folder, h, wds)
-    r = grasp(inst, limite, alpha, semente)
+    r = grasp(inst, limite, alpha, semente, amostra=am or None, desempate=des)
     print(f"{inst.name}: custo={r['custo']} viavel={r['viavel']} iteracoes={r['iteracoes']} tempo={r['tempo']:.1f}s")
     print("  componentes:", r["componentes"])
     print_schedule(inst, r["sched"])
