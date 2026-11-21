@@ -1,0 +1,2 @@
+instancia,enfermeiros,semanas,metodo,semente,custo,viavel,limite_inferior,gap_%,tempo_s,tempo_melhor_s,iteracoes,custo_referencia,lb_literatura,ub_literatura,gap_ub_lit_%
+n050w8_H1_WD1-7-8-5-7-4-1-8,50,8,grasp+am3+des,3,8940,True,,,300.7,120.46,99,,4805.0,4810.0,85.9

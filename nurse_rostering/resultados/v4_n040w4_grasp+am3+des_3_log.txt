@@ -1,0 +1,6 @@
+1 instancias x ['grasp+am3+des'], 300s cada -> /home/claude/projetopo/nurse_rostering/resultados/v4_n040w4_grasp+am3+des_3.csv
+
+== n040w4_H0_WD2-0-6-1  grasp+am3+des  semente=3
+    {'custo': 3235, 'viavel': True, 'limite_inferior': '', 'gap_%': '', 'tempo_s': 300.3, 'iteracoes': 402}
+
+resultados em /home/claude/projetopo/nurse_rostering/resultados/v4_n040w4_grasp+am3+des_3.csv
