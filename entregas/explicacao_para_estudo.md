@@ -1,6 +1,6 @@
 # Nurse Rostering – resumo dos métodos e preparação para a reunião
 
-18/11/2026 · Jorge Dourado (cópia do doc de estudo no claude.ai)
+21/11/2026 · Jorge Dourado (cópia do doc de estudo no claude.ai)
 
 Montamos a escala de 4 ou 8 semanas de 30 a 60 enfermeiros com quatro métodos; o melhor (SA + Fix-and-Optimize) ficou, em média, 17% acima do ótimo publicado, e o Gurobi, 354%.
 
@@ -315,6 +315,74 @@ O Gurobi usa *branch-and-bound* (ramificar e limitar). A relaxação é a ferram
 
 - **Cortes:** acrescentar desigualdades que toda escala real cumpre, mas que proíbem os truques fracionários. O Gurobi já faz isso sozinho no nó raiz: na n030w4, os cortes dele subiram o limite de 812 para 1.385, ainda abaixo do ótimo de 1.670.
 - **Geração de colunas (*branch-and-price*):** cada variável é a escala inteira de um enfermeiro, que já paga direito as próprias penalidades. "Meia escala A + meia escala B" custa a média de duas escalas reais, então o truque do "meio dia todo dia" não dá mais penalidade zero, e o limite fica quase igual ao ótimo. É o que os autores dos ótimos publicados usam.
+
+## Depois da reunião: versão 4 (21/11/2026)
+
+Na reunião de 18/11, o professor considerou os métodos corretos (GRASP, SA e SA + F&O) e o F&O agora atende a crítica. Ele sugeriu quatro coisas: dar mais tempo ao Gurobi, tratar os empates, usar penalidades dinâmicas e mudar a construção do GRASP. Implementamos as três últimas como **opções** e testamos cada uma antes de usar.
+
+### 1. Desempate por gravidade
+
+Os pesos oficiais empatam muito: S1, S2 de trabalho, S3, S5 e S7 valem 30 cada. Então 1 vaga de cobertura sem preencher e 1 fim de semana incompleto custam a mesma coisa. Agora cada tipo de regra tem uma **gravidade** (`nucleo.GRAV_PADRAO`), que só decide os empates:
+
+| Regra | Gravidade |
+| --- | --- |
+| S1 cobertura ótima | 6 (segurança do paciente) |
+| S3 folgas seguidas | 5 (descanso) |
+| S2 dias de trabalho seguidos | 4 (fadiga) |
+| S5 e S7 fins de semana | 3 |
+| S2 turnos seguidos, S6 total de turnos | 2 |
+| S4 pedidos de folga | 1 |
+
+- **No VND do GRASP:** um movimento de custo igual que reduz a gravidade conta como melhora. Assim a busca "anda no platô" em vez de parar no primeiro ótimo local. Como o par (custo, gravidade) sempre diminui, o VND continua terminando.
+- **No SA:** um movimento de custo igual só é aceito se não piorar a gravidade.
+
+### 2. Penalidade dinâmica (viabilidade recente)
+
+Antes, cada violação hard (falta de cobertura mínima ou sucessão proibida) custava 10.000 fixos. Com temperatura de no máximo 40, o SA nunca aceitava violar uma regra hard e andava só por escalas viáveis. Agora o peso λ muda durante a busca. A cada lote de 20 mil movimentos:
+
+- se a escala ficou viável em quase todo o lote, λ cai (÷ 1,1) e a busca pode atravessar escalas inviáveis;
+- se ficou inviável boa parte do lote, λ sobe (× 1,1) e a busca é empurrada de volta;
+- nos últimos 10% do tempo, λ volta a 10.000; a melhor escala guardada é sempre viável.
+
+O resultado é uma **oscilação estratégica** em torno da fronteira da viabilidade. A regra de ajuste vem de Gendreau, Hertz e Laporte (1994). Testamos duas versões: a normal (viável entre 50% e 90% do tempo) e a suave (`dinS`, viável entre 80% e 98% do tempo, λ ≥ 10).
+
+### 3. GRASP gulosa-amostral
+
+Em vez da lista restrita de candidatos (RCL com α = 0,15), sorteiam-se p candidatos e escolhe-se o melhor deles. Testamos p = 3 e p = 10% dos candidatos. O nome técnico é "sampled greedy" (Resende e Ribeiro, 2016, cap. 7).
+
+### Como escolhemos (calibração)
+
+Rodamos cada opção em 4 instâncias **fora** do conjunto de teste (as mesmas da calibração de T0 e Tf), com 300 s cada:
+
+| Configuração | Distância média ao melhor publicado |
+| --- | --- |
+| SA versão 3 | 12,8% |
+| SA + penalidade dinâmica | 11,9% |
+| SA + penalidade dinâmica suave | **10,5%** |
+| SA + desempate | 13,9% (piorou) |
+| GRASP versão 3 | 110,9% |
+| GRASP + desempate | 98,3% |
+| GRASP amostral (p = 3) + desempate | **97,6%** |
+
+Escolhas: GRASP amostral (p = 3) + desempate; SA e SA + F&O com penalidade dinâmica suave. No SA, o desempate piorou: ao recusar movimentos de custo igual, ele tira a diversificação que o SA tem quando anda no platô. Por isso o SA não usa desempate.
+
+### Resultado no conjunto de teste (8 instâncias, 3 sementes, 300 s)
+
+Para medir o efeito de forma justa, rodamos a versão 3 de novo na **mesma máquina** e com as mesmas sementes:
+
+| Método | Versão 3 | Versão 4 | Versão 4 melhor em |
+| --- | --- | --- | --- |
+| GRASP | 145,5% | **134,3%** | 8 de 8 |
+| SA | **21,6%** | 22,3% | 2 de 8 |
+| SA + F&O | **15,7%** | 16,1% | 3 de 8 |
+
+(distância média ao melhor valor publicado; menor é melhor)
+
+- **GRASP:** o desempate fez o VND andar no platô e ganhar cerca de 11 pontos; é a melhora mais clara.
+- **Penalidade dinâmica:** ajudou na calibração, mas no teste ficou empatada com a fixa. A diferença (0,4 a 0,7 ponto) é menor que a variação entre sementes. O motivo provável é que as trocas N2 e N4 já movem turnos sem perder cobertura, então atravessar escalas inviáveis acrescenta pouco.
+- **Melhor método:** continua o SA + F&O, a 16,1% do melhor publicado em média e melhor em 7 das 8 instâncias.
+
+**Como explicar na apresentação:** testamos as três sugestões com calibração fora do conjunto de teste e comparamos na mesma máquina. Uma funcionou (desempate no GRASP), uma ficou neutra (penalidade dinâmica) e uma piorou o SA (desempate no SA). Mostrar o que não funcionou também é resultado.
 
 ## Perguntas prováveis e respostas
 
