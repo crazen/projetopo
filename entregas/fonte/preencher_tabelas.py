@@ -38,16 +38,43 @@ def ub(i):
     return f(T.ub_lit[i]) + ("*" if i in OTIMO else "")
 
 
-# ---------------------------------------------------------------- etapa 5: linhas do exato
+# ---------------------------------------------------------------- etapa 5: linhas do exato (300 s e 1 hora)
+G1H = "gurobi_1h" in T and T.gurobi_1h.notna().all()
 linhas = []
 for k, (i, r) in enumerate(T.iterrows()):
     tam = TAM.get(i)
-    vr = f"{f(tam['colunas'] / 1000, 1)} / {f(tam['linhas'] / 1000, 1)} mil" if tam else "–"
+    vr = f"{f(tam['colunas'] / 1000, 1)} / {f(tam['linhas'] / 1000, 1)}" if tam else "–"
     sep = ' class="sep"' if k == 4 else ""
-    linhas.append(f'<tr{sep}><td class="l">{i}</td><td>{int(r.N)}</td><td>{int(r["sem"])}</td><td>{vr}</td>'
-                  f'<td>{f(r.gurobi)}</td><td>{f(r.gurobi_lb)}</td><td>{f(r.pl)}</td><td>{f(r.gurobi_gap, 1)}%</td>'
-                  f'<td>{f(r.gurobi_t)}</td><td>limite</td><td>{ub(i)}</td><td>{pct(r.dev_gurobi)}</td></tr>')
+    cel = (f'<tr{sep}><td class="l">{i}</td><td>{vr}</td><td>{f(r.pl)}</td>'
+           f'<td>{f(r.gurobi)}</td><td>{f(r.gurobi_gap, 1)}%</td><td>{f(r.gurobi_t)}</td><td>{pct(r.dev_gurobi)}</td>')
+    if G1H:
+        ot = " (ótimo)" if str(r.gurobi_1h_otimo) == "True" else ""
+        cel += (f'<td>{f(r.gurobi_1h)}{ot}</td><td>{f(r.gurobi_1h_lb)}</td><td>{f(r.gurobi_1h_gap, 1)}%</td>'
+                f'<td>{f(r.gurobi_1h_t)}</td><td>{pct(r.dev_gurobi_1h)}</td>')
+    linhas.append(cel + f'<td>{ub(i)}</td></tr>')
 inserir("etapa5_resultados_metodo_exato.html", "LINHAS_EXATO", "\n".join(linhas))
+
+# instancias de teste: 60 s (resultados_ampl.csv) e 1 hora (resultados_gurobi_longo_teste.csv)
+REF_COMP = {"n005w4_H0": 1695, "n005w4_H1": 2010, "n005w4_H2": 1720, "n012w8_H0": 3295, "n012w8_H1": 3805,
+            "n012w8_H2": 3745, "n021w4_H0": 2305, "n021w4_H1": 2305, "n021w4_H2": 2345}   # solucoes de referencia
+a60 = pd.read_csv(os.path.join(NR, "resultados_ampl.csv"), sep=";").set_index("instancia")
+arq1h = os.path.join(NR, "resultados_gurobi_longo_teste.csv")
+t1h = pd.read_csv(arq1h).set_index("instancia") if os.path.exists(arq1h) else None
+linhas = []
+for k, (inst, r) in enumerate(a60.iterrows()):
+    nome, h, wd = inst.split("_")
+    rot = f"{nome} ({h[1:]}; {wd[2:]})"
+    sep = ' class="sep"' if k in (3, 6) else ""
+    cel = (f'<tr{sep}><td class="l">{rot}</td><td>{f(r.custo)}</td><td>{f(r.limite_inferior)}</td>'
+           f'<td>{f(r["gap_%"], 1)}%</td><td>{f(r.tempo_s)}</td>')
+    if t1h is not None and inst in t1h.index:
+        q = t1h.loc[inst]
+        cel += (f'<td>{f(q.custo)}</td><td>{f(q.limite_inferior)}</td><td>{f(q["gap_%"], 1)}%</td>'
+                f'<td>{f(q.tempo_s)}</td>')
+    else:
+        cel += '<td>–</td><td>–</td><td>–</td><td>–</td>'
+    linhas.append(cel + f'<td>{f(REF_COMP[nome + "_" + h])}</td></tr>')
+inserir("etapa5_resultados_metodo_exato.html", "LINHAS_TESTE", "\n".join(linhas))
 
 # ---------------------------------------------------------------- etapa 6: comparacao
 linhas = []
@@ -84,8 +111,8 @@ linhas = [f'<tr><td class="l">{nomes[m]}</td><td>300 s</td><td>{tb[m]}</td><td>{
 if TEM_1H:
     n_ot = int(T.gurobi_1h_otimo.astype(str).eq("True").sum())
     linhas.insert(1, f'<tr><td class="l">Exato (Gurobi), 1 hora</td><td>3.600 s</td><td>–</td>'
-                     f'<td>{pct(T.dev_gurobi_1h.mean())}</td><td>–</td><td class="l">mesmo método com 12 vezes mais '
-                     f'tempo; provou ótimo em {n_ot} de 8</td></tr>')
+                     f'<td>{pct(T.dev_gurobi_1h.mean())}</td><td>–</td><td class="l">mesmo método, 12 vezes mais tempo; '
+                     + ('não provou ótimo em nenhuma' if n_ot == 0 else f'provou ótimo em {n_ot} de 8') + '</td></tr>')
 # mesmo metodo com 1 hora (1 semente), quando ja houver resultados
 for m, desc in [("sa", lambda: f"{f(T.sa_1h_it.mean() / 1e6, 0)} milhões de movimentos em média"),
                 ("fo", lambda: f"{f(T.fo_1h_it.mean(), 0)} subproblemas em média (após 30 min de SA)")]:
@@ -187,8 +214,16 @@ if "fo_1h" in T and "sa_1h" in T and T.fo_1h.notna().all() and T.sa_1h.notna().a
     h.append(f'<tr class="sep"><td class="l">Dist. média</td><td></td><td>{pct(T.dev_fo_medio.mean())}</td>'
              + (f'<td>{pct(T.dev_gurobi_1h.mean())}</td>' if tem_g else '') +
              f'<td>{pct(T.dev_sa_1h.mean())}</td><td>{pct(T.dev_fo_1h.mean())}</td><td></td><td></td></tr>')
+    nota_g = ""
+    if tem_g:
+        nota_g = (' Gurobi: mesmo método da Etapa 5 (1 thread), no i5 com duas execuções simultâneas; vale a escala devolvida.')
+        if "gurobi_1h_no_limite" in T:
+            for i, r in T[T.gurobi_1h_no_limite.notna()].iterrows():
+                nota_g += (f' Na {i}, o Gurobi só parou aos {f(r.gurobi_1h_t)} s (confere o relógio ao fim de cada nó); '
+                           f'aos 3.600 s tinha {f(r.gurobi_1h_no_limite)}.')
     h.append('</tbody></table><p class="legenda">Tabela 5. Execuções de 1 hora por instância, com os mesmos parâmetros '
-             '(1 semente). No SA + F&amp;O, 30 min de SA e 30 min de F&amp;O. Em negrito, o melhor entre SA e SA + F&amp;O.</p>')
+             '(1 semente). No SA + F&amp;O, 30 min de SA e 30 min de F&amp;O. Em negrito, o melhor entre SA e SA + F&amp;O.'
+             + nota_g + '</p>')
     inserir("etapa8_artigo_sbpo.html", "TAB_1H", "\n".join(h))
 
 print("vitorias:", vit)

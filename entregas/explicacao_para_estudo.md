@@ -2,7 +2,7 @@
 
 22/11/2026 · Jorge Dourado (cópia do doc de estudo no claude.ai)
 
-Montamos a escala de 4 ou 8 semanas de 30 a 60 enfermeiros com quatro métodos. O melhor (SA + Fix-and-Optimize, versão 4) ficou, em média, 16% acima do ótimo publicado com 5 minutos e 10% com 1 hora; o Gurobi, 354% com 5 minutos.
+Montamos a escala de 4 ou 8 semanas de 30 a 60 enfermeiros com quatro métodos. O melhor (SA + Fix-and-Optimize, versão 4) ficou, em média, 16% acima do ótimo publicado com 5 minutos e 10% com 1 hora; o Gurobi, 354% com 5 minutos e 75% com 1 hora, sem provar nenhum ótimo.
 
 ## Como estudar este documento
 
@@ -408,6 +408,31 @@ Rodamos o SA + F&O e o SA sozinho com 1 hora por instância, sem mudar nenhum pa
   - ciclos SA → F&O, em que um SA curto reaquecido tira a escala do ótimo local quando o F&O trava: soma de 10.830 contra 10.755 sem ciclos.
 
 **Frase para a apresentação:** "Com 5 minutos, ficamos a 16% do melhor valor publicado; com 1 hora, a 10%. Os valores publicados vêm de um branch-and-price rodado por horas, com 8 threads."
+
+### Gurobi com 1 hora (pedido do professor; rodado no PC em 21/11/2026)
+
+Mesmo método da Etapa 5 (1 thread, mipgap 0, custo real com x fixo), só com 3.600 s.
+
+| Instância | Melhor publicado | Gurobi 300 s | Gurobi 1 h | Gap 1 h | SA + F&O 1 h |
+| --- | --- | --- | --- | --- | --- |
+| n030w4 | 1.670 | 1.785 | 1.725 | 9,0% | 1.740 |
+| n040w4 | 1.565 | 2.435 | 1.785 | 43,1% | 1.725 |
+| n050w4 | 1.315 | 1.810 | 1.565 | 43,5% | 1.465 |
+| n060w4 | 2.450 | 8.110 | 2.755 | 32,7% | 2.580 |
+| n030w8 | 2.010 | 4.580 | 2.370 | 31,9% | 2.115 |
+| n040w8 | 2.515 | 21.655 | 6.280 | 79,5% | 2.880 |
+| n050w8 | 4.810 | 27.065 | 6.660 | 47,1% | 5.150 |
+| n060w8 | 2.150 | 26.830 | 9.535 | 90,4% | 2.660 |
+| **Distância média** |  | 354% | 75% |  | 10,2% |
+
+- **Melhorou muito, mas não provou nenhum ótimo.** Nas de 4 semanas, ficou a 12% do melhor publicado (na n030w4, a 3,3%, e melhor que o SA + F&O de 1 hora); nas de 8, a 137%.
+- **Por que não prova:** o limite inferior quase não sobe (n060w8: de 716 para 914, contra 2.150 publicado). É a relaxação fraca de novo: mais tempo encontra escalas melhores, mas não fecha o gap.
+- **Instâncias de teste:** provou o ótimo das três n005w4 (a mais difícil em 766 s); as n021w4 ficaram com gap de 4% a 9%; as n012w8 (8 semanas), de 20% a 24%.
+- **Cuidado 1, velocidade:** as duas execuções rodaram ao mesmo tempo no PC e andaram cerca de duas vezes mais devagar que as de 300 s. Sabemos disso porque o Gurobi é determinístico: as escalas da Etapa 5 aparecem idênticas no log de 1 hora, só que entre 437 e 899 s.
+- **Cuidado 2, limite de tempo:** o Gurobi só confere o relógio ao terminar cada nó. A n050w8 parou aos 5.220 s (aos 3.600 s, tinha 6.995). Na Etapa 5, a n050w4 parou aos 439 s (aos 300 s, tinha 2.215). Mostramos a escala devolvida e o tempo real, com o valor no instante do limite nas notas.
+
+**Frase para a apresentação:** "Com 1 hora, o Gurobi melhora bastante, mas não prova nenhum ótimo: o limite inferior quase não sobe, porque a relaxação é fraca. Nas de 8 semanas, ainda fica 137% acima do melhor publicado."
+
 
 ## Perguntas prováveis e respostas
 

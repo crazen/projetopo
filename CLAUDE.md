@@ -99,7 +99,7 @@ Atribuir a cada enfermeiro, em cada dia, um turno (Early, Day, Late, Night) com 
 | `consolidar.py` | Junta Gurobi, HiGHS, relaxação linear e `resultados/v3_*.csv` em `comparacao_final.csv` e gera `entregas/fonte/fig_*.png` |
 | `testes.py` | Modelo × avaliador, custo rápido × avaliador, núcleo numba × custo rápido, GRASP/SA/F&O curtos. Deve terminar em `TUDO CERTO` |
 | `rodar_gurobi_longo.py` | (17/11/2026) Gurobi com vários limites de tempo (`--tempos 300,900,1800,3600`), mesmo método da Etapa 5 por padrão (1 thread, mipgap 0, x fixo para o custo real); log completo em `logs_gurobi/`, resumo em `resultados_gurobi_longo*.csv`; retoma se interrompido; impede o PC de dormir; `--push` envia cada resultado ao GitHub; `--saida` para 2 processos. Extras: `--threads`, `--cfg inicio` (MIP start de `inicio_mip/`). Rodado no PC em 21/11/2026 (final e teste, 3600 s) |
-| `analisar_logs_gurobi.py` | (21/11/2026) Do log de 3600 s, incumbente e limite em 60/300/900/1800 s (Gurobi determinístico) → `resultados_gurobi_tempos.csv` |
+| `analisar_logs_gurobi.py` | (21/11/2026) Do log de 3600 s, incumbente e limite em 60/300/900/1800/3600 s (Gurobi determinístico) → `resultados_gurobi_tempos.csv`; se a execução passou mais de 60 s do limite, o instante do limite vem do log. Atenção: os valores aos 300 s deste log não substituem os da Etapa 5 (rodou ~2 vezes mais devagar) |
 | `instancias_final.txt` | Conjunto final: n030w4, n040w4, n050w4, n060w4, n030w8, n040w8, n050w8, n060w8 (combinações da literatura) |
 | `resultados_antigos/` | Resultados da versão 2 (GRASP-ILS/SA em Python puro e a "LNS"); só histórico |
 
@@ -128,7 +128,7 @@ Heurísticas na nuvem (Xeon 2,3 GHz, mais rápido por núcleo que o servidor da 
 
 Distância média ao melhor publicado: Gurobi +353,8%; GRASP v4 +134,3% (v3: +145,5%, v4 melhor nas 8); SA v4 +22,3% (v3: +21,6%); **SA+F&O v4 +16,1%** (v3: +15,7%), melhor método em 7/8 (n030w4: SA). Conclusão honesta: o desempate (com a construção amostral) melhora o GRASP; a penalidade dinâmica, boa na calibração (12,8% → 10,5%), não se repetiu no teste (diferença dentro do ruído entre sementes); o desempate piora o SA. Etapa 6 refeita com esses números (`entregas/etapa6_comparacao_exato_aproximado.pdf`, 2 páginas).
 
-**Atualizado em 22/11/2026:** Etapa 4 (estratégias da v4 e plano com 1 h), Etapa 6, artigo (Etapa 8: resumo, métodos, Tabelas 4 e 5, conclusões; 10 páginas), slides (Etapa 7: 10 slides + 3 de reserva, ~8 min de fala) e guia de estudo, todos com os números v4 e de 1 h. **Pendente:** Gurobi de 1 h: rodou no PC em 21/11 (dois terminais, `--push`), mas só chegou ao GitHub o primeiro resultado (n005w4 H0: ótimo 1470 em 73 s). Os demais estão em `nurse_rostering/logs_gurobi/` e `resultados_gurobi_longo*.csv` no PC. Quando chegarem, rodar `analisar_logs_gurobi.py` e `consolidar.py` (já leem esses arquivos) e atualizar a Etapa 5 (e, se der, a linha "Gurobi 1 hora" da Tabela 2 da Etapa 6, que `preencher_tabelas.py` insere sozinha).
+**Atualizado em 22/11/2026:** Etapa 4 (estratégias da v4 e plano com 1 h), Etapa 6, artigo (Etapa 8: resumo, métodos, Tabelas 4 e 5, conclusões; 11 páginas), slides (Etapa 7: 10 slides + 3 de reserva, ~8 min de fala) e guia de estudo, todos com os números v4 e de 1 h (incluindo o Gurobi de 1 h, seção 8.0c).
 
 ### 8.0b Com 1 hora (21–22/11/2026; mesmo método e parâmetros da v4, só o tempo muda; 1 semente; nuvem)
 
@@ -146,6 +146,28 @@ Distância média ao melhor publicado: Gurobi +353,8%; GRASP v4 +134,3% (v3: +14
 | n060w8 | 2150 | 3003 | 2945 | **2660** | 3258 s |
 
 Média: SA 1 h +14,9%; **SA+F&O 1 h +10,2%** (4 semanas 7,8%, 8 semanas 12,6%); F&O vence em 7/8. O F&O converge em poucos minutos (ótimo local das decomposições); por isso, na menor instância, o SA sozinho (que resfria a hora toda) ganha. Testados e **não adotados** (calibração, instâncias fora do teste): janelas do F&O divididas em grupos (`max_livres`; n050w8 5280 × 5265) e ciclos SA → F&O (`cic`; soma 10830 × 10755, `calibracao/v4b`). Etapa 6 inclui as linhas de 1 h na Tabela 2.
+
+### 8.0c Gurobi com 1 hora (21/11/2026, PC i5, 1 thread, mesmo método da Etapa 5; chegou ao GitHub em 22/11)
+
+`resultados_gurobi_longo.csv` (finais), `resultados_gurobi_longo_teste.csv` (teste), logs em `logs_gurobi/`, instantes intermediários em `resultados_gurobi_tempos.csv` (`analisar_logs_gurobi.py`).
+
+| Instância | Melhor publ. | Gurobi 300 s | Gurobi 1 h | Gap 1 h | Tempo | Dist. 1 h |
+|---|---|---|---|---|---|---|
+| n030w4 | 1670* | 1785 | 1725 | 9,0% | 3602 s | +3,3% |
+| n040w4 | 1565* | 2435 | 1785 | 43,1% | 3604 s | +14,1% |
+| n050w4 | 1315* | 1810 | 1565 | 43,5% | 3602 s | +19,0% |
+| n060w4 | 2450* | 8110 | 2755 | 32,7% | 3648 s | +12,4% |
+| n030w8 | 2010* | 4580 | 2370 | 31,9% | 3641 s | +17,9% |
+| n040w8 | 2515 | 21655 | 6280 | 79,5% | 3602 s | +149,7% |
+| n050w8 | 4810 | 27065 | 6660 | 47,1% | 5220 s | +38,5% |
+| n060w8 | 2150 | 26830 | 9535 | 90,4% | 3602 s | +343,5% |
+
+Média: +74,8% (4 semanas +12,2%, 8 semanas +137,4%); 300 s: +353,8%. **Nenhum ótimo provado** nas finais; o limite inferior quase não sobe (n060w8: 716 → 914). Teste: as três n005w4 com ótimo provado (H0 1470 em 73 s, H1 1600 em 766 s, H2 1430 em 26 s); n012w8 gap 20–24% (2820, 3450, 3285); n021w4 gap 3,6–9,0% (1730, 1755, 1675); as 9 abaixo das soluções de referência. Comparado às heurísticas: só supera o SA+F&O 1 h na n030w4 (1725 × 1740); nas de 4 semanas fica perto do SA+F&O de 300 s (12,2% × 11,5%).
+
+**Cuidados (explicar se perguntarem):**
+- **Velocidade:** as duas execuções de 1 h rodaram juntas no PC e andaram ~2 vezes mais devagar que as da Etapa 5. As escalas da Etapa 5 aparecem idênticas no log de 1 h entre 437 e 899 s (prova de que o Gurobi é determinístico); razão de ~2,05 na n040w4 e n050w4. Não houve suspensão do PC (trabalho/tempo ≈ 0,70 unidades/s constante em todos os logs).
+- **Limite ultrapassado:** o Gurobi só confere o relógio ao fim de cada nó. Regra adotada (a mesma da Etapa 5): vale a escala devolvida, com o tempo real. n050w8 1 h parou aos 5220 s (aos 3600 s tinha 6995: coluna `gurobi_1h_no_limite`); na Etapa 5, n040w4 (345 s) e n050w4 (439 s) acharam a escala ao fim de um nó, depois dos 300 s (aos 300 s: 2710 e 2215). Tudo isso está nas notas da Etapa 5, no artigo (Seção 6.2) e no guia.
+- O log de n005w4 H1 (1 h) foi apagado sem querer no PC e recuperado do histórico do git (commit 9ad5472).
 
 ### 8.1 Resultados finais v3 (16–17/11/2026, 300 s, 1 thread)
 
@@ -206,10 +228,9 @@ Com 120 s, o LNS chegou a 2240 na n021w4.
 
 ## 9. Próximos passos
 
-1. **Gurobi de 1 h (pedido do professor):** os resultados estão no PC (`logs_gurobi/`, `resultados_gurobi_longo*.csv`); enviar ao GitHub (`git add`, `commit`, `pull --rebase`, `push`). Depois: `python analisar_logs_gurobi.py`, `python consolidar.py`, `python ../entregas/fonte/preencher_tabelas.py` (a Tabela 2 da Etapa 6, a Tabela 5 do artigo e o slide 5 ganham o Gurobi 1 h sozinhos) e atualizar o texto da Etapa 5 e uma frase do artigo (Seção 6.2/6.3). Conferir no log se o PC não suspendeu (saltos de tempo).
-2. Preencher os e-mails dos autores no artigo (`[e-mail]`).
-3. Confirmar com o professor se as Etapas 1 a 4 precisam ser reentregues.
-4. Ideias (trabalho futuro, já no artigo): mais sementes e as 40 instâncias; decomposições mais variadas para o F&O (converge cedo); dividir o tempo SA/F&O pelo tamanho da instância; geração de colunas.
+1. Preencher os e-mails dos autores no artigo (`[e-mail]`).
+2. Confirmar com o professor se as Etapas 1 a 4 precisam ser reentregues.
+3. Ideias (trabalho futuro, já no artigo): mais sementes e as 40 instâncias; decomposições mais variadas para o F&O (converge cedo); dividir o tempo SA/F&O pelo tamanho da instância; geração de colunas.
 
 **Rotina da v4 (nuvem):** `rodar_experimentos.py --prefixo v4 --pasta resultados --metodos fo+dinS,sa+dinS,grasp+am3+des,fo,sa,grasp --processos 2` (as três últimas = versão 3 na mesma máquina, para a Tabela 3 da Etapa 6). Cuidado: não apagar `_tmp_*.txt` nem usar `git stash -u` com execuções rodando (perde resultados).
 

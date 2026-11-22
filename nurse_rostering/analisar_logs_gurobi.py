@@ -9,6 +9,13 @@ Cuidado: o valor do incumbente no log e o objetivo do modelo. Quando o solver pa
 MAIOR que o custo real da escala (variaveis de penalidade nao apertadas). O custo real so e calculado no fim
 (x fixado, em rodar_gurobi_longo.py). Por isso a coluna custo_real so e preenchida no instante final.
 
+Cuidado 2: o caminho e o mesmo, mas a velocidade depende da maquina e da carga. As execucoes de 1 h de 21/11/2026
+rodaram duas ao mesmo tempo no PC e andaram mais devagar que as da Etapa 5: a escala que a Etapa 5 tinha aos 300 s
+aparece no log de 1 h entre 437 e 899 s. Ou seja, o valor "aos 300 s" deste log nao substitui o da Etapa 5.
+
+Cuidado 3: o Gurobi so confere o relogio entre nos. Se a execucao passou mais de FOLGA s do limite, o instante do
+limite vem do log (incumbente), e nao do resultado final.
+
 Uso:   python analisar_logs_gurobi.py [--cortes 60,300,900,1800,3600]
 Saida: resultados_gurobi_tempos.csv  (instancia, tempo_limite_s, t_s, incumbente, limite_inferior, gap_%, nos,
                                        custo_real, otimo_provado)
@@ -16,7 +23,8 @@ Saida: resultados_gurobi_tempos.csv  (instancia, tempo_limite_s, t_s, incumbente
 import argparse, csv, glob, os, re
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
-NUM = re.compile(r"^-?\d+(\.\d+)?(e[+-]?\d+)?$")
+FOLGA = 60          # segundos alem do limite aceitos como "dentro do limite" (o Gurobi so confere o relogio entre nos)
+NUM =re.compile(r"^-?\d+(\.\d+)?(e[+-]?\d+)?$")
 
 
 def ler_log(caminho):
@@ -104,9 +112,12 @@ def main():
         if r is None:
             continue                                     # execucao ainda em andamento
         ev, fim = ler_log(log)
+        # o Gurobi so confere o relogio entre nos: se passou mais de FOLGA s do limite, o resultado final nao vale
+        # como "limite" (ex.: n050w8 parou aos 5218 s); nesse caso o instante do limite vem do log, como os demais
+        passou = float(r["tempo_s"]) > lim + FOLGA
         for c in [x for x in cortes if x <= lim]:
             t, inc, lb, nos, acabou = no_instante(ev, fim, c)
-            final = acabou or c == lim
+            final = acabou or (c == lim and not passou)
             custo = r["custo"] if final else ""
             ub = float(custo) if custo not in ("", None) else inc
             gap = round(100 * (ub - lb) / ub, 2) if ub and lb is not None else ""

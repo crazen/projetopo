@@ -193,10 +193,14 @@ linhas_g = [("Gurobi 13 · 300 s · 1 thread", {"negrito": True, "cor": AZUL}),
             ("Simplex caro: só 1 a 3 nós em 300 s", {"bullet": True, "negrito": True})]
 if TEM_G1H:
     n_ot = int(T.gurobi_1h_otimo.astype(str).eq("True").sum())
-    linhas_g.append((f"Com 1 hora: +{fmt(T.dev_gurobi_1h.mean(), 0)}% em média; ótimo provado em {n_ot} de 8",
+    w4 = T.loc[[i for i in T.index if i.endswith("w4")], "dev_gurobi_1h"].mean()
+    w8 = T.loc[[i for i in T.index if i.endswith("w8")], "dev_gurobi_1h"].mean()
+    ot = "nenhum ótimo provado" if n_ot == 0 else f"ótimo provado em {n_ot} de 8"
+    linhas_g.append((f"Com 1 hora: +{fmt(w4, 0)}% (4 semanas) e +{fmt(w8, 0)}% (8 semanas); {ot}",
                      {"bullet": True}))
-    nota_1h = (f" Com 1 hora, a pedido do professor, ficou a {fmt(T.dev_gurobi_1h.mean(), 0)}% em média e provou o "
-               f"ótimo em {n_ot} de 8.")
+    nota_1h = (f" Com 1 hora, a pedido do professor, melhora bastante: fica a {fmt(w4, 0)}% do ótimo nas de 4 semanas, "
+               f"mas ainda a {fmt(w8, 0)}% nas de 8, e não prova nenhum ótimo. Nas instâncias pequenas de teste, com 5 "
+               f"enfermeiros, prova o ótimo das três.")
 sl = slide("Método exato: o Gurobi não dá conta das instâncias reais", secao="Método exato – resultados", notas=(
     "(~1 min 15 s) Com 5 minutos e 1 thread, o Gurobi não provou a otimalidade de nenhuma instância. Nas de 4 semanas "
     "às vezes chega perto, como a n030w4 a 7%, mas nas de 8 semanas as escalas são várias vezes piores que o ótimo. "

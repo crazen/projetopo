@@ -1,59 +1,66 @@
 <!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><title>Etapa 5 - Resultados do método exato</title>
-<link rel="stylesheet" href="etapa.css"></head><body>
+<link rel="stylesheet" href="etapa.css">
+<style>
+thead tr.g th.c { border-bottom: 0.5pt solid #000; }
+thead tr.s th { border-top: 0; }
+h2 { break-after: avoid; }
+table.t5 { font-size: 9pt; } table.t5 th, table.t5 td { padding: 1.5pt 3.5pt; }
+</style></head><body>
 
 <h1>Escalonamento de Enfermeiros com Regras Trabalhistas:<br>Programação Inteira e Metaheurísticas nas Instâncias do INRC-II</h1>
 <p class="autores">Eduardo Lopes - 168804, Jorge Dourado - 168900</p>
 <p class="etapa">Pesquisa Operacional - UNIFESP/ICT - Etapa 5: Implementação – Resultados do Método Exato</p>
 
 <h2>1. Configuração dos experimentos</h2>
-<p>O modelo de Programação Linear Inteira da Etapa 4 (arquivo <code>nurse.mod</code>) foi escrito em AMPL (Fourer et al., 2003) e resolvido pelo <b>Gurobi 13.0.3</b>, com licença acadêmica, em um computador Intel Core i5-13400 com 16 GB de RAM, usando <b>1 thread</b> e <i>mipgap</i> = 0, ou seja, o solver só para antes do limite de tempo se provar a otimalidade. Os dados de cada instância foram convertidos do formato JSON da competição INRC-II (Ceschia et al., 2019) para o formato de dados do AMPL. Quando o solver para por tempo, as variáveis de penalidade da melhor solução encontrada podem estar maiores que o necessário. Por isso, ao final, as variáveis de atribuição <span class="var">x</span> são fixadas e o modelo é resolvido novamente (em menos de 1 s), o que dá o <b>custo real</b> da escala. Esse valor é o custo real da escala porque, com <span class="var">x</span> fixo, o modelo reproduz exatamente o custo calculado pelo avaliador que segue o validador oficial do INRC-II (verificado nas soluções de referência da competição e em escalas aleatórias).</p>
-<p>A qualidade de cada solução é medida de duas formas: pelo <b>gap</b> informado pelo solver, (custo − limite inferior)/custo, que é uma garantia de pior caso; e pela <b>distância ao melhor valor publicado</b> por Legrain e Omer (2023), (custo − melhor publicado)/melhor publicado, que mede a qualidade real.</p>
+<p>O modelo de Programação Linear Inteira da Etapa 4 (arquivo <code>nurse.mod</code>) foi escrito em AMPL (Fourer et al., 2003) e resolvido pelo <b>Gurobi 13.0.3</b>, com licença acadêmica, num Intel Core i5-13400 com 16 GB de RAM, usando <b>1 thread</b> e <i>mipgap</i> = 0: o solver só para antes do limite de tempo se provar a otimalidade. As instâncias são as da competição INRC-II (Ceschia et al., 2019), convertidas do formato JSON para o do AMPL. Quando o solver para por tempo, as variáveis de penalidade da melhor solução podem ficar maiores que o necessário; por isso, ao final, fixamos as variáveis de atribuição <span class="var">x</span> e resolvemos de novo (em menos de 1 s), o que dá o <b>custo real</b> da escala, igual ao calculado pelo avaliador que segue o validador oficial. Cada instância foi resolvida com limite de <b>300 s</b> e, a pedido do professor, com <b>1 hora</b>, sem mudar mais nada.</p>
+<p>A qualidade é medida pelo <b>gap</b> do solver, (custo − limite inferior)/custo, que é uma garantia de pior caso, e pela <b>distância ao melhor valor publicado</b> por Legrain e Omer (2023), (custo − melhor publicado)/melhor publicado. O Gurobi só confere o relógio ao terminar cada etapa da busca (um nó da árvore ou uma rodada de cortes), por isso às vezes passa do limite; as tabelas mostram a escala devolvida e o tempo realmente gasto.</p>
 
-<h2>2. Resultados nas instâncias de avaliação (300 s)</h2>
-<table class="nw">
-<thead><tr><th class="l">Instância</th><th>N</th><th>Sem.</th><th>Variáveis /<br>restrições</th><th>Custo da<br>escala</th><th>Limite<br>inferior</th><th>Limite<br>do PL</th><th>Gap</th><th>Tempo<br>(s)</th><th>Status</th><th>Melhor<br>publicado</th><th>Distância ao<br>melhor publ.</th></tr></thead>
+<h2>2. Resultados nas instâncias de avaliação (300 s e 1 hora)</h2>
+<table class="nw t5">
+<thead><tr class="g"><th class="l" rowspan="2">Instância</th><th rowspan="2">Variáveis /<br>restrições (mil)</th><th rowspan="2">Limite<br>do PL</th><th class="c" colspan="4">300 s</th><th class="c" colspan="5">1 hora</th><th rowspan="2">Melhor<br>publicado</th></tr>
+<tr class="s"><th>Custo</th><th>Gap</th><th>Tempo (s)</th><th>Distância</th><th>Custo</th><th>Limite inf.</th><th>Gap</th><th>Tempo (s)</th><th>Distância</th></tr></thead>
 <tbody>
 <!--LINHAS_EXATO-->
-<tr><td class="l">n030w4</td><td>30</td><td>4</td><td>26,4 / 26,7 mil</td><td>1.785</td><td>1.385</td><td>812</td><td>22,4%</td><td>305</td><td>limite</td><td>1.670*</td><td>+6,9%</td></tr>
-<tr><td class="l">n040w4</td><td>40</td><td>4</td><td>37,4 / 36,6 mil</td><td>2.435</td><td>705</td><td>319</td><td>71,0%</td><td>345</td><td>limite</td><td>1.565*</td><td>+55,6%</td></tr>
-<tr><td class="l">n050w4</td><td>50</td><td>4</td><td>45,6 / 44,7 mil</td><td>1.810</td><td>715</td><td>545</td><td>60,5%</td><td>439</td><td>limite</td><td>1.315*</td><td>+37,6%</td></tr>
-<tr><td class="l">n060w4</td><td>60</td><td>4</td><td>58,7 / 58,8 mil</td><td>8.110</td><td>1.835</td><td>1.246</td><td>77,4%</td><td>300</td><td>limite</td><td>2.450*</td><td>+231,0%</td></tr>
-<tr class="sep"><td class="l">n030w8</td><td>30</td><td>8</td><td>52,5 / 53,0 mil</td><td>4.580</td><td>1.556</td><td>1.402</td><td>66,0%</td><td>300</td><td>limite</td><td>2.010*</td><td>+127,9%</td></tr>
-<tr><td class="l">n040w8</td><td>40</td><td>8</td><td>74,2 / 72,6 mil</td><td>21.655</td><td>1.215</td><td>1.073</td><td>94,4%</td><td>300</td><td>limite</td><td>2.515</td><td>+761,0%</td></tr>
-<tr><td class="l">n050w8</td><td>50</td><td>8</td><td>90,5 / 88,7 mil</td><td>27.065</td><td>2.992</td><td>2.401</td><td>88,9%</td><td>300</td><td>limite</td><td>4.810</td><td>+462,7%</td></tr>
-<tr><td class="l">n060w8</td><td>60</td><td>8</td><td>107,8 / 106,3 mil</td><td>26.830</td><td>716</td><td>630</td><td>97,3%</td><td>300</td><td>limite</td><td>2.150</td><td>+1.147,9%</td></tr>
+<tr><td class="l">n030w4</td><td>26,4 / 26,7</td><td>812</td><td>1.785</td><td>22,4%</td><td>305</td><td>+6,9%</td><td>1.725</td><td>1.570</td><td>9,0%</td><td>3.602</td><td>+3,3%</td><td>1.670*</td></tr>
+<tr><td class="l">n040w4</td><td>37,4 / 36,6</td><td>319</td><td>2.435</td><td>71,0%</td><td>345</td><td>+55,6%</td><td>1.785</td><td>1.015</td><td>43,1%</td><td>3.604</td><td>+14,1%</td><td>1.565*</td></tr>
+<tr><td class="l">n050w4</td><td>45,6 / 44,7</td><td>545</td><td>1.810</td><td>60,5%</td><td>439</td><td>+37,6%</td><td>1.565</td><td>885</td><td>43,5%</td><td>3.602</td><td>+19,0%</td><td>1.315*</td></tr>
+<tr><td class="l">n060w4</td><td>58,7 / 58,8</td><td>1.246</td><td>8.110</td><td>77,4%</td><td>300</td><td>+231,0%</td><td>2.755</td><td>1.855</td><td>32,7%</td><td>3.648</td><td>+12,4%</td><td>2.450*</td></tr>
+<tr class="sep"><td class="l">n030w8</td><td>52,5 / 53,0</td><td>1.402</td><td>4.580</td><td>66,0%</td><td>300</td><td>+127,9%</td><td>2.370</td><td>1.614</td><td>31,9%</td><td>3.641</td><td>+17,9%</td><td>2.010*</td></tr>
+<tr><td class="l">n040w8</td><td>74,2 / 72,6</td><td>1.073</td><td>21.655</td><td>94,4%</td><td>300</td><td>+761,0%</td><td>6.280</td><td>1.289</td><td>79,5%</td><td>3.602</td><td>+149,7%</td><td>2.515</td></tr>
+<tr><td class="l">n050w8</td><td>90,5 / 88,7</td><td>2.401</td><td>27.065</td><td>88,9%</td><td>300</td><td>+462,7%</td><td>6.660</td><td>3.522</td><td>47,1%</td><td>5.220</td><td>+38,5%</td><td>4.810</td></tr>
+<tr><td class="l">n060w8</td><td>107,8 / 106,3</td><td>630</td><td>26.830</td><td>97,3%</td><td>300</td><td>+1.147,9%</td><td>9.535</td><td>914</td><td>90,4%</td><td>3.602</td><td>+343,5%</td><td>2.150</td></tr>
 <!--/LINHAS_EXATO-->
 </tbody></table>
-<p class="legenda">Tabela 1. Gurobi 13.0.3 via AMPL, limite de 300 s, 1 thread. * = ótimo provado na literatura.</p>
-<p class="nota">Limite inferior: o do Gurobi ao fim de 300 s. Limite do PL: valor da relaxação linear do modelo (variáveis binárias relaxadas para [0, 1]). Status “limite” = o tempo acabou antes de provar a otimalidade. O tempo informado pelo AMPL inclui a preparação do modelo pelo solver, por isso pode passar um pouco de 300 s. Variáveis e restrições: tamanho do modelo gerado (milhares). Melhor publicado: Legrain e Omer (2023), Tabela 5.</p>
+<p class="legenda">Tabela 1. Gurobi 13.0.3 via AMPL, 1 thread. Distância: ao melhor publicado. * = ótimo provado na literatura.</p>
+<p class="nota">Nenhuma execução provou a otimalidade. Limite do PL: valor da relaxação linear (variáveis binárias em [0, 1]). Melhor publicado: Legrain e Omer (2023), Tabela 5. As execuções de 1 hora rodaram duas ao mesmo tempo no computador e andaram cerca de duas vezes mais devagar: as escalas da coluna de 300 s aparecem nos registros de 1 hora entre 437 e 899 s (sempre as mesmas, porque o Gurobi é determinístico). Na n040w4 e na n050w4 (300 s) e na n050w8 (1 hora), a escala foi encontrada ao fim de um nó demorado, depois do limite; no instante do limite, a melhor tinha custo 2.710, 2.215 e 6.995.</p>
 
 <!--SEC_TESTE-->
-<h2>3. Resultados nas instâncias de teste (60 s)</h2>
-<p>Para verificar o comportamento do método em instâncias pequenas, resolvemos também as 9 instâncias do conjunto de teste da competição (as combinações que acompanham soluções de referência), com limite de 60 s.</p>
-<table class="nw">
-<thead><tr><th class="l">Instância</th><th>N</th><th>Sem.</th><th>Custo</th><th>Limite inferior</th><th>Gap</th><th>Tempo (s)</th><th>Status</th><th>Ref. competição</th></tr></thead>
+<h2>3. Resultados nas instâncias de teste (60 s e 1 hora)</h2>
+<table class="nw t5">
+<thead><tr class="g"><th class="l" rowspan="2">Instância (histórico; semanas)</th><th class="c" colspan="4">60 s</th><th class="c" colspan="4">1 hora</th><th rowspan="2">Ref.<br>competição</th></tr>
+<tr class="s"><th>Custo</th><th>Limite inf.</th><th>Gap</th><th>Tempo (s)</th><th>Custo</th><th>Limite inf.</th><th>Gap</th><th>Tempo (s)</th></tr></thead>
 <tbody>
-<tr><td class="l">n005w4 (0; 1-2-3-3)</td><td>5</td><td>4</td><td>1.470</td><td>1.470</td><td>0,0%</td><td>51</td><td>ótimo</td><td>1.695</td></tr>
-<tr><td class="l">n005w4 (1; 5-3-1-0)</td><td>5</td><td>4</td><td>1.625</td><td>1.495</td><td>8,0%</td><td>60</td><td>limite</td><td>2.010</td></tr>
-<tr><td class="l">n005w4 (2; 6-7-8-9)</td><td>5</td><td>4</td><td>1.430</td><td>1.430</td><td>0,0%</td><td>15</td><td>ótimo</td><td>1.720</td></tr>
-<tr class="sep"><td class="l">n012w8 (0; 3-5-0-2-0-4-5-2)</td><td>12</td><td>8</td><td>8.385</td><td>1.913</td><td>77,2%</td><td>60</td><td>limite</td><td>3.295</td></tr>
-<tr><td class="l">n012w8 (1; 7-7-0-8-9-3-2-6)</td><td>12</td><td>8</td><td>4.990</td><td>2.417</td><td>51,6%</td><td>60</td><td>limite</td><td>3.805</td></tr>
-<tr><td class="l">n012w8 (2; 4-5-6-7-2-1-2-1)</td><td>12</td><td>8</td><td>9.200</td><td>2.165</td><td>76,5%</td><td>60</td><td>limite</td><td>3.745</td></tr>
-<tr class="sep"><td class="l">n021w4 (0; 5-4-1-2)</td><td>21</td><td>4</td><td>2.150</td><td>1.510</td><td>29,8%</td><td>74</td><td>limite</td><td>2.305</td></tr>
-<tr><td class="l">n021w4 (1; 0-6-1-6)</td><td>21</td><td>4</td><td>2.085</td><td>1.465</td><td>29,7%</td><td>74</td><td>limite</td><td>2.305</td></tr>
-<tr><td class="l">n021w4 (2; 8-1-4-3)</td><td>21</td><td>4</td><td>1.855</td><td>1.520</td><td>18,1%</td><td>60</td><td>limite</td><td>2.345</td></tr>
+<!--LINHAS_TESTE-->
+<tr><td class="l">n005w4 (0; 1-2-3-3)</td><td>1.470</td><td>1.470</td><td>0,0%</td><td>51</td><td>1.470</td><td>1.470</td><td>0,0%</td><td>73</td><td>1.695</td></tr>
+<tr><td class="l">n005w4 (1; 5-3-1-0)</td><td>1.625</td><td>1.495</td><td>8,0%</td><td>60</td><td>1.600</td><td>1.600</td><td>0,0%</td><td>766</td><td>2.010</td></tr>
+<tr><td class="l">n005w4 (2; 6-7-8-9)</td><td>1.430</td><td>1.430</td><td>0,0%</td><td>15</td><td>1.430</td><td>1.430</td><td>0,0%</td><td>26</td><td>1.720</td></tr>
+<tr class="sep"><td class="l">n012w8 (0; 3-5-0-2-0-4-5-2)</td><td>8.385</td><td>1.913</td><td>77,2%</td><td>60</td><td>2.820</td><td>2.231</td><td>20,9%</td><td>3.601</td><td>3.295</td></tr>
+<tr><td class="l">n012w8 (1; 7-7-0-8-9-3-2-6)</td><td>4.990</td><td>2.417</td><td>51,6%</td><td>60</td><td>3.450</td><td>2.756</td><td>20,1%</td><td>3.601</td><td>3.805</td></tr>
+<tr><td class="l">n012w8 (2; 4-5-6-7-2-1-2-1)</td><td>9.200</td><td>2.165</td><td>76,5%</td><td>60</td><td>3.285</td><td>2.507</td><td>23,7%</td><td>3.601</td><td>3.745</td></tr>
+<tr class="sep"><td class="l">n021w4 (0; 5-4-1-2)</td><td>2.150</td><td>1.510</td><td>29,8%</td><td>74</td><td>1.730</td><td>1.575</td><td>9,0%</td><td>3.602</td><td>2.305</td></tr>
+<tr><td class="l">n021w4 (1; 0-6-1-6)</td><td>2.085</td><td>1.465</td><td>29,7%</td><td>74</td><td>1.755</td><td>1.605</td><td>8,6%</td><td>3.604</td><td>2.305</td></tr>
+<tr><td class="l">n021w4 (2; 8-1-4-3)</td><td>1.855</td><td>1.520</td><td>18,1%</td><td>60</td><td>1.675</td><td>1.615</td><td>3,6%</td><td>3.601</td><td>2.345</td></tr>
+<!--/LINHAS_TESTE-->
 </tbody></table>
-<p class="legenda">Tabela 2. Gurobi nas instâncias de teste, limite de 60 s, 1 thread.</p>
-<p class="nota">Ref. competição: custo da solução de referência distribuída com os dados, obtida na versão dinâmica (semana a semana), que serve apenas como ordem de grandeza.</p>
+<p class="legenda">Tabela 2. Gurobi nas 9 instâncias de teste da competição (as que acompanham soluções de referência), 1 thread. Gap 0,0% = ótimo provado. Ref. competição: solução de referência distribuída com os dados (versão semana a semana; só ordem de grandeza).</p>
 <!--/SEC_TESTE-->
 
 <h2>4. Análise</h2>
 <!--ANALISE-->
-<p><b>Qualidade da solução.</b> Nas instâncias de avaliação, o Gurobi atingiu o limite de 300 s em todas, sem provar a otimalidade de nenhuma. Nas de 4 semanas, a escala da n030w4 ficou a apenas 6,9% do ótimo e a da n050w4 a 37,6%, mas a da n060w4 ficou a 231%. Nas de 8 semanas, o gap ficou entre 66% e 97%, e as escalas custam de 2,3 a 12,5 vezes o melhor valor publicado.</p>
-<p><b>Por que o solver não avança.</b> Dois fatos explicam esses números. Primeiro, a <b>relaxação linear do modelo é fraca</b>: o limite do PL fica entre 20% e 70% do melhor valor publicado (por exemplo, 319 na n040w4, cujo ótimo é 1.565). As penalidades de sequência mínima, fim de semana e total de turnos quase não aparecem no PL, porque uma escala fracionária (como trabalhar “meio turno” todos os dias) as satisfaz sem custo. Os cortes do Gurobi melhoram esse limite (de 812 para 1.385 na n030w4), mas não o bastante. Segundo, <b>o próprio PL é caro</b>: o registro do Gurobi mostra de 280 mil a 1 milhão de iterações do simplex e apenas 1 a 3 nós de <i>branch-and-bound</i> em 300 s em todas as instâncias, exceto a n030w4 (1.041 nós). Ou seja, quase todo o tempo vai para o nó raiz, e a escala devolvida vem das heurísticas internas do solver. Por isso o resultado piora tanto de n050w4 para n060w4 e nas instâncias de 8 semanas, e não de forma proporcional ao tamanho: depende de a heurística do solver acertar uma boa escala antes do tempo acabar.</p>
-<p><b>Instâncias pequenas.</b> O Gurobi provou a otimalidade em 2 das 9 instâncias de teste (n005w4, com 5 enfermeiros, em 15 e 51 s) e, nas de 4 semanas, obteve escalas melhores que as soluções de referência da competição. Já nas de 8 semanas (n012w8), mesmo com 12 enfermeiros, o gap ficou entre 52% e 77%. A dificuldade cresce sobretudo com o horizonte, que multiplica as restrições de sequência e o acoplamento entre semanas.</p>
-<p><b>Conclusão.</b> O modelo está correto (com a escala fixada, reproduz o custo do validador oficial) e é resolvido até o ótimo em instâncias pequenas, mas o modelo compacto não é adequado para as instâncias reais em poucos minutos. Os autores que resolvem essas instâncias até o ótimo usam uma formulação por escalas completas de cada enfermeiro com geração de colunas (<i>branch-and-price</i>), de relaxação muito mais forte, e até horas de computação (Legrain e Omer, 2023). Isso motiva os métodos aproximados da Etapa 6.</p>
+<p><b>Qualidade da solução.</b> Com 300 s, o Gurobi não provou a otimalidade de nenhuma instância de avaliação: nas de 4 semanas, as escalas ficaram, em média, 83% acima do melhor publicado (de 6,9% na n030w4 a 231% na n060w4) e, nas de 8 semanas, 625% acima. <b>Com 1 hora</b>, todas melhoraram: a distância média caiu de 354% para 75% (12% nas de 4 semanas e 137% nas de 8). A n030w4 chegou a 1.725, a 3,3% do ótimo. Mesmo assim, nenhum ótimo foi provado e o gap ficou entre 9% e 90%, porque o limite inferior quase não sobe: na n060w8, foi de 716 para 914, contra 2.150 publicado. Nas instâncias de teste, o Gurobi provou o ótimo das três n005w4 (em até 766 s), baixou o gap das n021w4 para 4%–9% e superou as soluções de referência nas 9; nas n012w8, de 8 semanas, o gap ainda ficou entre 20% e 24%.</p>
+<p><b>Por que o solver não avança.</b> Primeiro, a <b>relaxação linear do modelo é fraca</b>: o limite do PL fica entre 20% e 70% do melhor publicado (319 na n040w4, cujo ótimo é 1.565), porque uma escala fracionária, como trabalhar “meio turno” todo dia, satisfaz as regras de sequência mínima, fim de semana e total de turnos quase sem penalidade. Os cortes do Gurobi melhoram esse limite, mas pouco (na n030w4, de 812 para 1.570 em 1 hora). Segundo, <b>o próprio PL é caro</b>: em 300 s o Gurobi faz de 280 mil a 1 milhão de iterações do simplex e explora só 1 a 3 nós de <i>branch-and-bound</i> (1.041 na n030w4). Quase todo o tempo vai para o nó raiz, e a escala devolvida vem das heurísticas internas do solver; por isso o resultado depende de a heurística acertar uma boa escala antes do tempo acabar, e não cresce de forma proporcional ao tamanho.</p>
+<p><b>Conclusão.</b> O modelo está correto (com a escala fixada, reproduz o custo do validador oficial) e resolve até o ótimo instâncias pequenas, mas o modelo compacto não serve para as instâncias reais: nem com 1 hora prova a otimalidade, e nas de 8 semanas as escalas ficam, em média, 137% acima do melhor publicado. Os autores que resolvem essas instâncias até o ótimo usam uma formulação por escalas completas de cada enfermeiro com geração de colunas (<i>branch-and-price</i>), de relaxação muito mais forte (Legrain e Omer, 2023). Isso motiva os métodos aproximados da Etapa 6.</p>
 <!--/ANALISE-->
 
 <h2>Referências</h2>

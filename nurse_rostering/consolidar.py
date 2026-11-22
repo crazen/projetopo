@@ -101,8 +101,19 @@ def carregar():
         gl = pd.read_csv("resultados_gurobi_longo.csv")
         gl = gl[(gl.cfg == "puro") & (gl.threads == 1) & (gl.tempo_limite_s == 3600)]
         gl = gl.assign(inst=gl.instancia.map(curto)).drop_duplicates("inst", keep="last").set_index("inst")
+        # Regra (a mesma da Etapa 5): vale a escala que o Gurobi devolveu, com o tempo que ele realmente usou.
+        # O Gurobi so confere o relogio ao terminar um no; se passou mais de 60 s do limite (n050w8: 5218 s), o texto
+        # informa tambem o incumbente no instante do limite (objetivo lido do log por analisar_logs_gurobi.py).
         t["gurobi_1h"] = gl.custo; t["gurobi_1h_lb"] = gl.limite_inferior.round(0); t["gurobi_1h_gap"] = gl["gap_%"]
         t["gurobi_1h_t"] = gl.tempo_s; t["gurobi_1h_otimo"] = gl.otimo_provado
+        passou = gl.tempo_s > gl.tempo_limite_s + 60
+        t["gurobi_1h_passou"] = passou
+        if passou.any() and os.path.exists("resultados_gurobi_tempos.csv"):
+            tp = pd.read_csv("resultados_gurobi_tempos.csv")
+            tp = tp[(tp.tempo_limite_s == 3600) & (tp.t_s == 3600)]
+            tp = tp[tp.instancia.isin(gl.instancia)]                      # so as instancias finais
+            tp = tp.assign(inst=tp.instancia.map(curto)).set_index("inst")
+            t["gurobi_1h_no_limite"] = tp.incumbente.where(passou.reindex(tp.index, fill_value=False))
     t["highs"] = hig.custo; t["highs_lb"] = hig.limite_inferior
     # 1 hora por instancia (mesmo metodo e parametros, so o tempo muda; 1 semente): resultados_1h/h1_*.csv
     fs1 = [f for f in sorted(glob.glob(os.path.join(AQUI, "resultados_1h", "h1_*.csv")))

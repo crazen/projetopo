@@ -30,7 +30,7 @@ Escalonamento de enfermagem com as regras do INRC-II, resolvendo o horizonte int
 | `resultados_1h/` | Execuções de 1 hora do SA e do SA + F&O (mesmos parâmetros, 1 semente), em rodadas de 2 instâncias (`rodada_n0X0.txt`) |
 | `resultados_antigos/` | Resultados da versão 2 (só histórico; ver o LEIAME de lá) e, em `v3/`, o código do núcleo, SA e GRASP da versão 3 (usado no teste de regressão) |
 | `rodar_gurobi_longo.py` | Gurobi com tempos maiores (ex.: 3600 s), mesmo método da Etapa 5 (1 thread, mipgap 0, custo real com x fixo); grava o log completo de cada execução em `logs_gurobi/` e `resultados_gurobi_longo*.csv`; impede o PC de dormir; `--push` envia cada resultado ao GitHub; `--saida` permite 2 processos. Opções: `--threads`, `--cfg inicio` (MIP start) |
-| `analisar_logs_gurobi.py` | Lê os logs de 3600 s e extrai incumbente e limite inferior em 60, 300, 900 e 1800 s da mesma execução (o Gurobi é determinístico) → `resultados_gurobi_tempos.csv` |
+| `analisar_logs_gurobi.py` | Lê os logs de 3600 s e extrai incumbente e limite inferior em 60, 300, 900, 1800 e 3600 s da mesma execução (o Gurobi é determinístico) → `resultados_gurobi_tempos.csv`. Como as execuções de 1 h rodaram duas ao mesmo tempo (~2 vezes mais devagar), o valor "aos 300 s" desse log não substitui o da Etapa 5 |
 | `gerar_inicio_mip.py`, `inicio_mip/` | Escalas iniciais do SA + F&O (300 s) para o MIP start do Gurobi, em comandos `let x[...] := 1;` do AMPL |
 | `organizar_dados.py` | Junta os zips do INRC-II em `dados/`, com uma pasta por dataset |
 
