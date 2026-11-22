@@ -100,7 +100,7 @@ try:
     import importlib.util as _u
     _e = _u.spec_from_file_location("consolidar", os.path.join(NR, "consolidar.py"))
     _K = _u.module_from_spec(_e); _e.loader.exec_module(_K)
-    DESC = {"din": "penalidade dinâmica", "dinS": "penalidade dinâmica suave", "des": "desempate por gravidade"}
+    DESC = {"din": "penalidade dinâmica", "dinS": "penalidade dinâmica", "des": "desempate por gravidade"}
     for m in ["grasp", "sa", "fo"]:
         partes = _K.FINAL[m].split("+")[1:]
         d = [DESC.get(x, f"construção amostral ({x[2:].replace('p', '%')})" if x.startswith("am") else x) for x in partes]
@@ -157,6 +157,39 @@ cp.append('</tbody></table><p class="legenda">Tabela 3. Custo das escalas com 30
           f'e melhor de {int(T.n_sem.min())} sementes). Em negrito, o melhor custo médio da instância. Dist. média: distância média '
           'ao UB publicado.</p>')
 inserir("etapa8_artigo_sbpo.html", "TAB_COMP", "\n".join(cp))
+
+# artigo, Tabela 4: efeito das estrategias novas (versao 3 x versao 4, mesma maquina)
+if all(f"{m}_v3_medio" in T for m in ["grasp", "sa", "fo"]):
+    es = ['<table class="nw"><thead><tr><th class="l">Método</th><th class="l">Estratégias (Seção 5)</th>'
+          '<th>Sem as estratégias</th><th>Com as estratégias</th><th>Melhor em</th></tr></thead><tbody>']
+    for m in ["grasp", "sa", "fo"]:
+        melhorou = int((T[f"{m}_medio"] < T[f"{m}_v3_medio"]).sum())
+        es.append(f'<tr><td class="l">{nomes[m]}</td><td class="l">{CFG[m]}</td><td>{pct(T[f"dev_{m}_v3_medio"].mean())}</td>'
+                  f'<td>{pct(T[f"dev_{m}_medio"].mean())}</td><td>{melhorou} de 8</td></tr>')
+    es.append('</tbody></table><p class="legenda">Tabela 4. Efeito das estratégias: distância média ao UB publicado sem e '
+              'com as estratégias, na mesma máquina, com as mesmas 3 sementes e 300 s. Melhor em: instâncias em que o custo '
+              'médio com as estratégias foi menor.</p>')
+    inserir("etapa8_artigo_sbpo.html", "TAB_ESTRAT", "\n".join(es))
+
+# artigo, Tabela 5: 1 hora por instancia (mesmo metodo, 1 semente)
+if "fo_1h" in T and "sa_1h" in T and T.fo_1h.notna().all() and T.sa_1h.notna().all():
+    tem_g = "gurobi_1h" in T and T.gurobi_1h.notna().all()
+    h = ['<table class="nw"><thead><tr><th class="l">Instância</th><th>UB publ.</th><th>SA + F&amp;O<br>300 s (média)</th>'
+         + ('<th>Gurobi<br>1 h</th>' if tem_g else '') +
+         '<th>SA<br>1 h</th><th>SA + F&amp;O<br>1 h</th><th>Dist.<br>UB publ.</th><th>Última melhora<br>do SA + F&amp;O</th></tr></thead><tbody>']
+    for k, (i, r) in enumerate(T.iterrows()):
+        sep = ' class="sep"' if k == 4 else ""
+        sa_b = f"<b>{f(r.sa_1h)}</b>" if r.sa_1h < r.fo_1h else f(r.sa_1h)
+        fo_b = f"<b>{f(r.fo_1h)}</b>" if r.fo_1h <= r.sa_1h else f(r.fo_1h)
+        h.append(f'<tr{sep}><td class="l">{i}</td><td>{f(r.ub_lit)}</td><td>{f(r.fo_medio)}</td>'
+                 + (f'<td>{f(r.gurobi_1h)}</td>' if tem_g else '') +
+                 f'<td>{sa_b}</td><td>{fo_b}</td><td>{pct(r.dev_fo_1h)}</td><td>{f(r.fo_1h_tmelhor)} s</td></tr>')
+    h.append(f'<tr class="sep"><td class="l">Dist. média</td><td></td><td>{pct(T.dev_fo_medio.mean())}</td>'
+             + (f'<td>{pct(T.dev_gurobi_1h.mean())}</td>' if tem_g else '') +
+             f'<td>{pct(T.dev_sa_1h.mean())}</td><td>{pct(T.dev_fo_1h.mean())}</td><td></td><td></td></tr>')
+    h.append('</tbody></table><p class="legenda">Tabela 5. Execuções de 1 hora por instância, com os mesmos parâmetros '
+             '(1 semente). No SA + F&amp;O, 30 min de SA e 30 min de F&amp;O. Em negrito, o melhor entre SA e SA + F&amp;O.</p>')
+    inserir("etapa8_artigo_sbpo.html", "TAB_1H", "\n".join(h))
 
 print("vitorias:", vit)
 print("distancia media:", {k: round(v, 1) for k, v in dev.items()})

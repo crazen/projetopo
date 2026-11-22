@@ -26,7 +26,8 @@ Escalonamento de enfermagem com as regras do INRC-II, resolvendo o horizonte int
 | `calibracao/` | Calibração de T0 e Tf do SA e, em `v4/`, das estratégias da versão 4 (penalidade dinâmica, desempate, construção amostral), em 4 instâncias que **não** estão no conjunto final |
 | `instancias_final.txt` | Conjunto final: 8 instâncias da literatura (30 a 60 enfermeiros, 4 e 8 semanas) |
 | `instancias_literatura.txt`, `referencias_literatura.csv` | As 40 instâncias estáticas de Legrain e Omer (2023) e os melhores limites publicados |
-| `resultados/` | Uma linha de CSV (+ convergência e log) por execução das heurísticas |
+| `resultados/` | Uma linha de CSV (+ convergência e log) por execução das heurísticas (300 s) |
+| `resultados_1h/` | Execuções de 1 hora do SA e do SA + F&O (mesmos parâmetros, 1 semente), em rodadas de 2 instâncias (`rodada_n0X0.txt`) |
 | `resultados_antigos/` | Resultados da versão 2 (só histórico; ver o LEIAME de lá) e, em `v3/`, o código do núcleo, SA e GRASP da versão 3 (usado no teste de regressão) |
 | `rodar_gurobi_longo.py` | Gurobi com tempos maiores (ex.: 3600 s), mesmo método da Etapa 5 (1 thread, mipgap 0, custo real com x fixo); grava o log completo de cada execução em `logs_gurobi/` e `resultados_gurobi_longo*.csv`; impede o PC de dormir; `--push` envia cada resultado ao GitHub; `--saida` permite 2 processos. Opções: `--threads`, `--cfg inicio` (MIP start) |
 | `analisar_logs_gurobi.py` | Lê os logs de 3600 s e extrai incumbente e limite inferior em 60, 300, 900 e 1800 s da mesma execução (o Gurobi é determinístico) → `resultados_gurobi_tempos.csv` |

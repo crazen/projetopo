@@ -96,6 +96,9 @@ def imagem(sl, nome, x, y, w=None, h=None):
 
 
 # ------------------------------------------------------------------ 1. titulo
+TEM_1H = "fo_1h" in T and "sa_1h" in T and T.fo_1h.notna().all() and T.sa_1h.notna().all()
+TEM_G1H = "gurobi_1h" in T and T.gurobi_1h.notna().all()
+TEM_V3 = all(f"{m}_v3_medio" in T for m in ["grasp", "sa", "fo"])
 sl = prs.slides.add_slide(BRANCO_LAYOUT); num[0] += 1
 fundo = sl.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, W, H); fundo.fill.solid(); fundo.fill.fore_color.rgb = AZUL
 fundo.line.fill.background()
@@ -105,118 +108,67 @@ texto(sl, Cm(2.5), Cm(4.2), Cm(29), Cm(5), ["Escalonamento de Enfermeiros com Re
 texto(sl, Cm(2.5), Cm(11), Cm(29), Cm(3), ["Eduardo Lopes · Jorge Dourado",
       ("Pesquisa Operacional · UNIFESP – Instituto de Ciência e Tecnologia", {"tam": 18})], tam=22, cor=BRANCO)
 sl.notes_slide.notes_text_frame.text = (
-    "(~20 s) Boa tarde. Somos Eduardo e Jorge e vamos apresentar nosso trabalho sobre escalonamento de "
-    "enfermeiros: como montar a escala mensal de uma equipe de enfermagem respeitando regras trabalhistas, "
-    "comparando um método exato com metaheurísticas.")
+    "(~15 s) Boa tarde. Somos Eduardo e Jorge. Vamos mostrar como montar a escala de uma equipe de enfermagem "
+    "respeitando regras trabalhistas, comparando um método exato com metaheurísticas.")
 
-# ------------------------------------------------------------------ 2. motivacao
-sl = slide("O problema real", secao="Motivação", notas=(
-    "(~1 min) Todo hospital precisa montar, todo mês, a escala de enfermagem: quem trabalha em cada dia, em "
-    "qual turno e em qual função. Ela precisa cobrir a demanda, respeitar contratos e legislação (descanso "
-    "entre turnos, dias seguidos) e, se possível, atender pedidos de folga. Feita à mão, consome horas da "
-    "chefia e gera escalas ruins, com horas extras e cansaço, o que afeta a segurança do paciente. Na PO esse "
-    "é o Nurse Rostering Problem, um dos problemas de escalonamento de pessoal mais estudados."))
-texto(sl, Cm(1.5), Cm(3.5), Cm(18), Cm(13), [
-    ("Hospitais funcionam 24 h × 7 dias", {"bullet": True}),
-    ("Todo mês: quem trabalha, em que dia, em qual turno e em qual função?", {"bullet": True}),
-    ("Cobrir a demanda e respeitar contratos, descanso e pedidos de folga", {"bullet": True}),
-    ("Escala ruim → horas extras, cansaço, rotatividade, risco ao paciente", {"bullet": True}),
-    ("Na PO: Nurse Rostering Problem (NRP)", {"bullet": True, "negrito": True, "cor": AZUL}),
-    ("Burke et al. (2004); Van den Bergh et al. (2013)", {"tam": 14, "cor": CINZA, "italico": True}),
-], tam=22)
-caixa = sl.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Cm(20.5), Cm(4), Cm(11.5), Cm(9.5))
-caixa.fill.solid(); caixa.fill.fore_color.rgb = CLARO; caixa.line.color.rgb = AZUL
-texto(sl, Cm(21.2), Cm(4.6), Cm(10.2), Cm(8.5), [("De onde viemos", {"negrito": True, "cor": AZUL}),
-      ("Etapas 1–4: dimensionamento de equipes como cobertura de conjuntos", {"tam": 16}),
-      ("Feedback: “o Gurobi resolve isso fácil”", {"tam": 16, "italico": True}),
-      ("Agora: a escala individual, bem mais difícil", {"tam": 16, "negrito": True})], tam=18)
-
-# ------------------------------------------------------------------ 3. definicao
-sl = slide("O que decidir", secao="O problema (INRC-II)", notas=(
-    "(~1 min 15 s) Usamos a definição da Segunda Competição Internacional de Nurse Rostering, o INRC-II. Para "
-    "cada enfermeiro e cada dia decidimos: folga ou um turno (Early, Day, Late, Night) com uma habilidade "
-    "(chefe, enfermeiro, cuidador, estagiário). As regras rígidas, que nunca podem ser violadas, são quatro: um "
-    "turno por dia, cobertura mínima, sucessões proibidas (quem fez noite não pode fazer manhã no dia seguinte) e "
-    "habilidade. As flexíveis podem ser violadas, mas custam pontos: cobertura ótima, sequências mínimas e máximas, "
-    "pedidos de folga, fim de semana completo, total de turnos e de fins de semana. O objetivo é minimizar a soma "
-    "das penalidades. Resolvemos a versão estática: o horizonte inteiro de uma vez."))
-texto(sl, Cm(1.5), Cm(3.4), Cm(31), Cm(2), ["Para cada enfermeiro e cada dia: folga  ou  (turno, habilidade)   ·   "
-      "4 turnos × 4 habilidades   ·   horizonte de 4 ou 8 semanas"], tam=18, cor=CINZA)
+# ------------------------------------------------------------------ 2. problema
+sl = slide("O problema: a escala de enfermagem", secao="Problema (INRC-II)", notas=(
+    "(~1 min 15 s) Todo hospital monta, todo mês, a escala de enfermagem. Para cada enfermeiro e cada dia decidimos: "
+    "folga, ou um turno (manhã, dia, tarde, noite) com uma função (chefe, enfermeiro, cuidador, estagiário). Há regras "
+    "rígidas, que nunca podem ser quebradas, como a cobertura mínima e não fazer manhã depois de tarde. E há regras "
+    "flexíveis, que podem ser quebradas, mas custam pontos: dias seguidos, folgas, fins de semana, pedidos de folga. "
+    "O objetivo é a escala com menos pontos de penalidade. Usamos a definição da competição internacional INRC-II, "
+    "na versão estática: o horizonte inteiro, 4 ou 8 semanas, de uma vez."))
+texto(sl, Cm(1.5), Cm(3.4), Cm(31), Cm(2), ["Para cada enfermeiro e cada dia: folga  ou  (turno, função)   ·   "
+      "4 turnos × 4 funções   ·   4 ou 8 semanas"], tam=18, cor=CINZA)
 tabela(sl, Cm(1.5), Cm(5.2), Cm(14.5), [
-    ["Rígidas (hard)", ""], ["H1  um turno por dia", ""], ["H2  cobertura mínima", ""],
-    ["H3  sucessões proibidas (Night → Early)", ""], ["H4  só funções habilitadas", ""]],
+    ["Rígidas (nunca violar)", ""], ["H1  um turno por dia", ""], ["H2  cobertura mínima", ""],
+    ["H3  sucessões proibidas (Late → Early)", ""], ["H4  só funções habilitadas", ""]],
     [Cm(13.5), Cm(1.0)], tam=15)
 tabela(sl, Cm(17.3), Cm(5.2), Cm(15), [
-    ["Flexíveis (soft)", "peso"], ["S1  cobertura ótima", "30"], ["S2  dias seguidos: mesmo turno / trabalho", "15 / 30"],
+    ["Flexíveis (custam pontos)", "peso"], ["S1  cobertura ótima", "30"], ["S2  dias seguidos: turno / trabalho", "15 / 30"],
     ["S3  folgas seguidas", "30"], ["S4  pedidos de folga", "10"], ["S5  fim de semana completo", "30"],
     ["S6  total de turnos do contrato", "20"], ["S7  máx. fins de semana", "30"]], [Cm(12.2), Cm(2.8)], tam=15)
 texto(sl, Cm(1.5), Cm(10.5), Cm(14.5), Cm(4), [("Objetivo", {"negrito": True, "cor": AZUL}),
-      ("minimizar a soma ponderada das penalidades S1–S7, respeitando H1–H4", {"tam": 17}),
-      ("Versão estática: todo o horizonte conhecido (Ceschia et al., 2019)", {"tam": 14, "cor": CINZA, "italico": True})],
-      tam=20)
+      ("minimizar a soma das penalidades S1–S7 respeitando H1–H4", {"tam": 17}),
+      ("Ceschia et al. (2019); Burke et al. (2004)", {"tam": 14, "cor": CINZA, "italico": True})], tam=20)
 
-# ------------------------------------------------------------------ 4. dificuldade + literatura
-sl = slide("Por que é difícil, e o que a literatura faz", secao="Contexto", notas=(
-    "(~1 min) Com 30 enfermeiros e 28 dias já são da ordem de 10^800 escalas possíveis, e o problema é NP-difícil. "
-    "Pior: as regras de sequência acoplam os dias, então mudar um dia de um enfermeiro mexe em várias penalidades. "
-    "Na literatura recente, quem resolve essas instâncias até o ótimo usa branch-and-price especializado, com horas "
-    "de CPU (Legrain e Omer, 2023). Do lado heurístico, Ceschia e colegas usaram Simulated Annealing nesta mesma "
-    "versão. A nossa pergunta: com ferramentas acessíveis (um modelo compacto + Gurobi) e 5 minutos, até onde "
-    "chegamos? E quanto as metaheurísticas melhoram?"))
-texto(sl, Cm(1.5), Cm(3.5), Cm(15.5), Cm(13), [
-    ("Dificuldade", {"negrito": True, "cor": AZUL}),
-    ("NP-difícil (Cheang et al., 2003)", {"bullet": True}),
-    ("30 enf. × 28 dias ≈ 10⁸⁰⁰ escalas", {"bullet": True}),
-    ("Regras de sequência acoplam dias vizinhos", {"bullet": True}),
-    ("Simetria entre enfermeiros iguais", {"bullet": True}),
-], tam=21)
-texto(sl, Cm(17.5), Cm(3.5), Cm(15), Cm(13), [
-    ("Literatura", {"negrito": True, "cor": AZUL}),
-    ("INRC-II: instâncias públicas de referência (Ceschia et al., 2019)", {"bullet": True, "tam": 18}),
-    ("Exato: branch-and-price, horas de CPU (Legrain et al., 2020; Legrain e Omer, 2023)", {"bullet": True, "tam": 18}),
-    ("Heurístico: Simulated Annealing (Ceschia et al., 2020)", {"bullet": True, "tam": 18}),
-    ("Nossa pergunta: modelo compacto + Gurobi em 5 min vs. metaheurísticas, mesma máquina",
-     {"bullet": True, "tam": 18, "negrito": True}),
-], tam=21)
-
-# ------------------------------------------------------------------ 5. dados
-sl = slide("Dados: instâncias oficiais do INRC-II", secao="Dados", notas=(
-    "(~1 min) Os dados são as instâncias públicas da competição, em JSON. Cada instância combina um cenário "
-    "(turnos, habilidades, contratos, enfermeiros), um histórico (a semana anterior) e uma sequência de semanas "
-    "de demanda e pedidos de folga. Escolhemos 8 instâncias, com 30 a 60 enfermeiros e 4 ou 8 semanas, que "
-    "são exatamente as estudadas por Legrain e Omer, que publicam o ótimo ou os melhores limites. Isso permite "
-    "dizer o quão longe do ótimo cada método ficou. O modelo vai de 26 mil a 108 mil variáveis."))
-linhas = [["Instância", "Enf.", "Sem.", "Var. x", "Melhor publicado"]]
-VARX = {"n030w4": "5.488", "n040w4": "7.168", "n050w4": "8.736", "n060w4": "10.864", "n030w8": "10.976",
-        "n040w8": "14.336", "n050w8": "17.472", "n060w8": "20.160"}
+# ------------------------------------------------------------------ 3. dados e dificuldade
+sl = slide("Dados e por que é difícil", secao="Dados", notas=(
+    "(~1 min) Usamos 8 instâncias oficiais da competição, com 30 a 60 enfermeiros e 4 ou 8 semanas. São as mesmas "
+    "estudadas por Legrain e Omer, que publicam o ótimo ou o melhor valor conhecido, então dá para dizer o quão longe "
+    "do ótimo cada método ficou. O problema é NP-difícil, e as regras de sequência acoplam os dias: mudar um dia de um "
+    "enfermeiro mexe em várias penalidades. Quem prova esses ótimos usa branch-and-price especializado, por horas. "
+    "Nossa pergunta: com um modelo simples e um solver comercial, até onde chegamos? E as metaheurísticas?"))
+linhas = [["Instância", "Enf.", "Sem.", "Melhor publicado"]]
 OTIMO = {"n030w4", "n040w4", "n050w4", "n060w4", "n030w8"}
 for i, r in T.iterrows():
-    linhas.append([i, int(r.N), int(r["sem"]), VARX[i], fmt(r.ub_lit) + (" *" if i in OTIMO else "")])
-tabela(sl, Cm(1.5), Cm(3.4), Cm(16.5), linhas, [Cm(4.2), Cm(2.4), Cm(2.4), Cm(3.2), Cm(4.3)], tam=14, altura=Cm(0.82))
-texto(sl, Cm(19.2), Cm(3.4), Cm(13), Cm(13), [
-    ("Instância = cenário + histórico + semanas", {"negrito": True, "cor": AZUL}),
-    ("Cenário: turnos, habilidades, contratos, enfermeiros", {"bullet": True, "tam": 17}),
-    ("Histórico: estado no fim do período anterior", {"bullet": True, "tam": 17}),
-    ("Semanas: demanda mínima e ótima, pedidos de folga", {"bullet": True, "tam": 17}),
-    ("* ótimo provado; demais: melhor solução conhecida (Legrain e Omer, 2023)", {"tam": 14, "cor": CINZA}),
-    ("Modelo: 26 mil a 108 mil variáveis e restrições", {"tam": 17, "negrito": True}),
-], tam=19)
+    linhas.append([i, int(r.N), int(r["sem"]), fmt(r.ub_lit) + (" *" if i in OTIMO else "")])
+tabela(sl, Cm(1.5), Cm(3.4), Cm(13.5), linhas, [Cm(4.0), Cm(2.4), Cm(2.4), Cm(4.7)], tam=14, altura=Cm(0.82))
+texto(sl, Cm(16.5), Cm(3.4), Cm(16.3), Cm(13), [
+    ("Por que é difícil", {"negrito": True, "cor": AZUL}),
+    ("NP-difícil; 30 enfermeiros × 28 dias ≈ 10⁸⁰⁰ escalas", {"bullet": True, "tam": 18}),
+    ("Regras de sequência acoplam dias vizinhos", {"bullet": True, "tam": 18}),
+    ("Modelo: de 26 mil a 108 mil variáveis", {"bullet": True, "tam": 18}),
+    ("Literatura", {"negrito": True, "cor": AZUL}),
+    ("Ótimos publicados: branch-and-price, horas de CPU (Legrain e Omer, 2023)", {"bullet": True, "tam": 18}),
+    ("Nossa pergunta: modelo compacto + Gurobi × metaheurísticas, mesmo tempo", {"bullet": True, "tam": 18, "negrito": True}),
+    ("* ótimo provado", {"tam": 14, "cor": CINZA}),
+], tam=20)
 
-# ------------------------------------------------------------------ 6. modelo
+# ------------------------------------------------------------------ 4. modelo
 sl = slide("Modelo de Programação Linear Inteira", secao="Método exato", notas=(
-    "(~1 min 30 s) A variável principal x vale 1 se o enfermeiro n faz o turno s com a habilidade k no dia d; ela só "
-    "existe para habilidades que ele tem, então H4 sai de graça. As regras rígidas viram restrições diretas. O ponto "
-    "interessante é linearizar as sequências. Para um máximo de 5 dias seguidos: cada janela de 6 dias toda trabalhada "
-    "custa 1, o que conta exatamente os dias em excesso. Para um mínimo de 3: detectamos o padrão folga, j dias de "
-    "trabalho, folga, com j menor que 3, e cobramos 3 menos j. Como minimizamos, cada variável de violação fica no "
-    "menor valor possível, e o objetivo é exatamente a penalidade. Validamos isso comparando com o avaliador oficial "
-    "nas soluções de referência da competição."))
+    "(~1 min) A variável x vale 1 se o enfermeiro n faz o turno s com a função k no dia d; ela só existe para funções "
+    "que ele tem, então H4 sai de graça. As regras rígidas viram restrições diretas. O ponto interessante é linearizar "
+    "as sequências. Máximo de 5 dias seguidos: cada janela de 6 dias toda trabalhada custa 1. Mínimo de 3: detectamos "
+    "o padrão folga, j dias de trabalho, folga, com j menor que 3. Validamos o modelo contra o avaliador oficial da "
+    "competição."))
 texto(sl, Cm(1.5), Cm(3.4), Cm(15.5), Cm(13.5), [
-    ("x[n,d,s,k] ∈ {0,1}: enfermeiro n faz o turno s com a habilidade k no dia d", {"negrito": True, "tam": 18}),
+    ("x[n,d,s,k] ∈ {0,1}: enfermeiro n faz o turno s com a função k no dia d", {"negrito": True, "tam": 18}),
     ("H1: ∑ turnos do dia ≤ 1", {"bullet": True}),
     ("H2: ∑ x ≥ demanda mínima", {"bullet": True}),
     ("H3: a[n,d,Late] + a[n,d+1,Early] ≤ 1", {"bullet": True}),
-    ("H4: x só existe se n tem a habilidade k", {"bullet": True}),
+    ("H4: x só existe se n tem a função k", {"bullet": True}),
     ("Objetivo = ∑ peso × violação (S1–S7)", {"bullet": True, "negrito": True}),
     ("AMPL + Gurobi 13 (Fourer et al., 2003)", {"tam": 14, "cor": CINZA, "italico": True}),
 ], tam=19)
@@ -225,191 +177,216 @@ caixa.fill.solid(); caixa.fill.fore_color.rgb = CLARO; caixa.line.color.rgb = AZ
 texto(sl, Cm(18.1), Cm(3.8), Cm(13.9), Cm(11.8), [
     ("Linearizando as sequências", {"negrito": True, "cor": AZUL, "tam": 20}),
     ("Máximo de 5 dias seguidos:", {"negrito": True, "tam": 17}),
-    ("e[n,d] ≥ (w nos 6 dias até d) − 5", {"tam": 17}),
-    ("7 dias seguidos → 2 janelas cheias → custo 2 × 30", {"tam": 15, "cor": CINZA}),
+    ("e[n,d] ≥ (dias trabalhados na janela de 6 até d) − 5", {"tam": 17}),
     ("Mínimo de 3 dias seguidos:", {"negrito": True, "tam": 17}),
     ("v[n,d,j] detecta  folga | j dias | folga , j < 3", {"tam": 17}),
     ("custo (3 − j) × 30", {"tam": 15, "cor": CINZA}),
-    ("Minimização ⇒ objetivo = penalidade exata (testado contra o avaliador oficial)", {"tam": 15, "negrito": True}),
+    ("Testado contra o avaliador oficial", {"tam": 15, "negrito": True}),
 ], tam=17)
 
-# ------------------------------------------------------------------ 7. resultado exato
-sl = slide("Método exato: o Gurobi trava nas instâncias reais", secao="Método exato – resultados", notas=(
-    "(~1 min 15 s) Com 5 minutos e 1 thread, o Gurobi não provou a otimalidade de nenhuma instância. Nas de 4 "
-    "semanas ele chega perto do ótimo em algumas (n030w4 a 7%), mas nas de 8 semanas o gap passa de 60%, chegando "
-    "a 97%, e a escala é várias vezes pior que o ótimo publicado: ele mal sai do nó raiz. O gap é a garantia de pior "
-    "caso: diferença entre a escala e o limite inferior. Por isso também comparamos com o melhor valor publicado. "
-    "Por que ele trava: a relaxação linear do modelo é fraca. Resolvendo o PL, o limite fica entre 20% e 70% do "
-    "ótimo, porque uma escala fracionária, como trabalhar meio turno todo dia, satisfaz as regras de sequência sem "
-    "pagar penalidade. E o PL é caro: o log mostra centenas de milhares de iterações do simplex e 1 a 3 nós de "
-    "branch-and-bound em 5 minutos. Conclusão: o problema não é trivial para o solver, e isso justifica as "
-    "metaheurísticas."))
-linhas = [["Instância", "Custo", "Limite inf.", "Limite PL", "Gap", "Melhor publ.", "Distância"]]
+# ------------------------------------------------------------------ 5. resultado exato
+nota_1h = ""
+linhas_g = [("Gurobi 13 · 300 s · 1 thread", {"negrito": True, "cor": AZUL}),
+            ("Nenhuma instância com ótimo provado", {"bullet": True}),
+            ("8 semanas: escalas várias vezes piores que o ótimo", {"bullet": True}),
+            ("Relaxação linear fraca: PL = 20%–70% do ótimo", {"bullet": True, "negrito": True}),
+            ("Simplex caro: só 1 a 3 nós em 300 s", {"bullet": True, "negrito": True})]
+if TEM_G1H:
+    n_ot = int(T.gurobi_1h_otimo.astype(str).eq("True").sum())
+    linhas_g.append((f"Com 1 hora: +{fmt(T.dev_gurobi_1h.mean(), 0)}% em média; ótimo provado em {n_ot} de 8",
+                     {"bullet": True}))
+    nota_1h = (f" Com 1 hora, a pedido do professor, ficou a {fmt(T.dev_gurobi_1h.mean(), 0)}% em média e provou o "
+               f"ótimo em {n_ot} de 8.")
+sl = slide("Método exato: o Gurobi não dá conta das instâncias reais", secao="Método exato – resultados", notas=(
+    "(~1 min 15 s) Com 5 minutos e 1 thread, o Gurobi não provou a otimalidade de nenhuma instância. Nas de 4 semanas "
+    "às vezes chega perto, como a n030w4 a 7%, mas nas de 8 semanas as escalas são várias vezes piores que o ótimo. "
+    "Não é erro do modelo, que bate com o avaliador oficial. São dois motivos: a relaxação linear é fraca, porque "
+    "uma escala fracionária, como meio turno todo dia, satisfaz as regras de sequência sem pagar penalidade, então o "
+    "limite fica entre 20% e 70% do ótimo e quase nada é podado; e o PL é caro, então em 5 minutos ele resolve só 1 a 3 "
+    "nós da árvore." + nota_1h))
+linhas = [["Instância", "Custo", "Limite PL", "Gap", "Melhor publ.", "Distância"]]
 for i, r in T.iterrows():
-    linhas.append([i, fmt(r.gurobi), fmt(r.gurobi_lb), fmt(r.pl), f"{fmt(r.gurobi_gap, 1)}%",
-                   fmt(r.ub_lit), f"+{fmt(r.dev_gurobi, 0)}%"])
-tabela(sl, Cm(1.5), Cm(3.4), Cm(20), linhas, [Cm(3.4), Cm(2.6), Cm(3.0), Cm(2.8), Cm(2.4), Cm(3.0), Cm(2.8)],
+    linhas.append([i, fmt(r.gurobi), fmt(r.pl), f"{fmt(r.gurobi_gap, 0)}%", fmt(r.ub_lit), f"+{fmt(r.dev_gurobi, 0)}%"])
+tabela(sl, Cm(1.5), Cm(3.4), Cm(18), linhas, [Cm(3.4), Cm(3.0), Cm(3.0), Cm(2.4), Cm(3.2), Cm(3.0)],
        tam=14, altura=Cm(0.82))
-texto(sl, Cm(22.5), Cm(3.4), Cm(10.3), Cm(13.5), [
-    ("Gurobi 13 · 300 s · 1 thread", {"negrito": True, "cor": AZUL}),
-    ("Nenhuma instância com ótimo provado", {"bullet": True}),
-    ("4 semanas: às vezes perto do ótimo", {"bullet": True}),
-    ("8 semanas: gap de 66% a 97%; escalas várias vezes piores que o ótimo", {"bullet": True}),
-    ("Causa: relaxação linear fraca (PL = 20%–70% do ótimo) e 1 a 3 nós em 300 s", {"bullet": True, "negrito": True}),
-    ("Gap = (custo − LB) / custo", {"tam": 15, "cor": CINZA}),
-    ("Distância = (custo − melhor publicado) / melhor publicado", {"tam": 15, "cor": CINZA}),
-], tam=18)
+texto(sl, Cm(20.5), Cm(3.4), Cm(12.3), Cm(13.5), linhas_g, tam=18)
 
-# ------------------------------------------------------------------ 8. base das heuristicas
-sl = slide("Métodos aproximados: a base comum", secao="Metaheurísticas", notas=(
-    "(~1 min) As três heurísticas compartilham a mesma base. A escala é uma matriz enfermeiro por dia; H1 e H4 são "
-    "garantidas pela representação, e H2 e H3 viram penalidade de 10 mil, então a busca elimina violações primeiro. "
-    "O segredo de desempenho é a avaliação incremental: um movimento mexe em 1 ou 2 enfermeiros, então recalculamos só "
-    "o custo deles e os contadores de cobertura do dia. Isso permite milhões de movimentos. Usamos quatro "
-    "vizinhanças: trocar um dia, trocar dois enfermeiros num dia, um bloco de dias com o mesmo turno, e trocar "
-    "blocos entre dois enfermeiros."))
+# ------------------------------------------------------------------ 6. base comum
+sl = slide("Metaheurísticas: a base comum", secao="Métodos aproximados", notas=(
+    "(~1 min) As três heurísticas compartilham a mesma base. A escala é uma matriz enfermeiro por dia. A avaliação é "
+    "incremental: um movimento mexe em 1 ou 2 enfermeiros, então recalculamos só o custo deles; compilado com numba, "
+    "isso dá cerca de 1 milhão de movimentos por segundo. São quatro vizinhanças: trocar um dia, trocar dois "
+    "enfermeiros num dia, um bloco de dias com o mesmo turno, e trocar blocos entre dois enfermeiros. Seguindo a "
+    "sugestão do professor, quando dois movimentos empatam no custo, um segundo critério, a gravidade, decide: "
+    "faltar cobertura é pior que um fim de semana incompleto, que é pior que um pedido de folga negado."))
 texto(sl, Cm(1.5), Cm(3.4), Cm(15.5), Cm(13), [
     ("Representação: matriz enfermeiro × dia", {"bullet": True}),
-    ("H1, H4 garantidas; H2, H3 com penalidade 10.000", {"bullet": True}),
-    ("Avaliação incremental: recalcula só os enfermeiros afetados (μs por movimento)", {"bullet": True, "negrito": True}),
-    ("Custo das heurísticas conferido pelo avaliador oficial", {"bullet": True}),
+    ("Avaliação incremental compilada: ~1 milhão de movimentos/s", {"bullet": True, "negrito": True}),
+    ("Regras rígidas violadas pagam um peso λ", {"bullet": True}),
+    ("Desempate por gravidade (sugestão do professor):", {"bullet": True, "negrito": True, "cor": VERDE}),
+    ("cobertura > folgas > dias seguidos > fins de semana > totais > pedidos", {"tam": 16}),
 ], tam=20)
 tabela(sl, Cm(17.5), Cm(3.6), Cm(15), [["Vizinhança", "Movimento"],
-       ["N1 troca", "muda a atribuição de 1 enfermeiro em 1 dia"],
-       ["N2 swap", "2 enfermeiros trocam o que fazem em 1 dia"],
-       ["N3 bloco", "1 enfermeiro: mesmo turno em 2–5 dias seguidos"],
-       ["N4 swap de bloco", "2 enfermeiros trocam 2–7 dias seguidos"]], [Cm(4.2), Cm(10.8)], tam=15, altura=Cm(1.1))
+       ["N1 troca", "muda 1 enfermeiro em 1 dia"],
+       ["N2 swap", "2 enfermeiros trocam 1 dia"],
+       ["N3 bloco", "mesmo turno em 2–5 dias seguidos"],
+       ["N4 swap de bloco", "2 enfermeiros trocam 2–7 dias"]], [Cm(4.2), Cm(10.8)], tam=15, altura=Cm(1.1))
 
-# ------------------------------------------------------------------ 9. GRASP
-sl = slide("GRASP com VND", secao="Metaheurísticas", notas=(
-    "(~1 min 15 s) O GRASP é um método de múltiplas partidas: cada iteração constrói uma escala nova e a melhora "
-    "com busca local. A construção vai dia a dia, vaga a vaga: calcula o custo de colocar cada enfermeiro e sorteia "
-    "entre os melhores, a lista restrita de candidatos, controlada por alfa = 0,15. A busca local é um VND: percorre "
-    "por completo N1, N2, N3 e N4, voltando a N1 a cada melhoria, até um ótimo local das quatro vizinhanças. "
-    "Na primeira versão, em Python puro, o VND era tão lento que o GRASP fazia só 2 iterações em 5 minutos, o que "
-    "não é um GRASP de fato. Compilamos o cálculo de custo e os movimentos com o numba: cerca de 1 milhão de "
-    "movimentos por segundo, e o GRASP passou a fazer " + fmt(T.grasp_it.mean()) + " iterações em média."))
-texto(sl, Cm(1.5), Cm(3.4), Cm(16), Cm(13), [
-    ("1. Construção gulosa-aleatorizada", {"negrito": True, "cor": AZUL}),
-    ("RCL = {n : c(n) ≤ c_mín + α (c_máx − c_mín)}, α = 0,15", {"tam": 17}),
-    ("2. Busca local VND completa: N1 → N2 → N3 → N4", {"negrito": True, "cor": AZUL}),
-    ("volta a N1 a cada melhoria; para no ótimo local", {"tam": 17}),
-    ("3. Repete com uma nova construção (múltiplas partidas)", {"negrito": True, "cor": AZUL}),
-    ("Feo e Resende (1995); Mladenović e Hansen (1997)", {"tam": 13, "cor": CINZA, "italico": True}),
-], tam=20)
-caixa = sl.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Cm(18.3), Cm(3.4), Cm(14.2), Cm(10.5))
-caixa.fill.solid(); caixa.fill.fore_color.rgb = CLARO; caixa.line.color.rgb = VERDE
-texto(sl, Cm(18.9), Cm(3.8), Cm(13), Cm(9.8), [
-    ("Melhoria: núcleo compilado (numba)", {"negrito": True, "cor": VERDE, "tam": 20}),
-    ("Problema: em Python puro, ~50 mil movimentos/s → só 2 iterações do GRASP em 300 s", {"tam": 16}),
-    ("Solução: mesmo cálculo de custo, compilado; conferido contra o avaliador por testes automáticos", {"tam": 16}),
-    (f"Resultado: ~1 milhão de movimentos/s; {fmt(T.grasp_it.mean())} iterações do GRASP em média",
-     {"tam": 16, "negrito": True}),
-], tam=16)
+# ------------------------------------------------------------------ 7. tres metodos
+sl = slide("GRASP, Simulated Annealing e Fix-and-Optimize", secao="Métodos aproximados", notas=(
+    "(~1 min 45 s) O GRASP constrói muitas escalas e melhora cada uma com uma busca local completa, o VND. Na "
+    "construção, como o professor sugeriu, sorteamos 3 candidatos e pegamos o melhor; e na busca local o desempate deixa "
+    "andar por movimentos de mesmo custo. O Simulated Annealing aceita pioras com probabilidade que cai com a "
+    "temperatura, de 40 até 2. Aqui usamos a penalidade dinâmica: o peso das regras rígidas cai quando a escala está "
+    "viável há algum tempo e sobe quando não está, então a busca oscila na fronteira da viabilidade. O Fix-and-Optimize "
+    "parte da escala do SA e usa o próprio modelo de PLI: fixa quase tudo e deixa o solver reotimizar uma semana de "
+    "todos, ou a escala inteira de dois enfermeiros parecidos. Percorre esses pedaços em ordem até nenhum melhorar. "
+    "Todos os parâmetros foram escolhidos em instâncias fora do teste."))
+col = [(Cm(1.2), "GRASP", [
+    ("Construção gulosa-amostral: sorteia 3 candidatos, pega o melhor", {"bullet": True}),
+    ("Busca local VND: N1 → N2 → N3 → N4", {"bullet": True}),
+    ("Desempate: anda no platô", {"bullet": True}),
+    (f"~{fmt(T.grasp_it.mean())} iterações em 300 s", {"bullet": True, "negrito": True}),
+    ("Feo e Resende (1995); Resende e Ribeiro (2016)", {"tam": 12, "cor": CINZA, "italico": True})]),
+    (Cm(11.9), "Simulated Annealing", [
+    ("Aceita piora Δ com prob. e^(−Δ/T)", {"bullet": True}),
+    ("T: 40 → 2 ao longo do tempo", {"bullet": True}),
+    ("Penalidade dinâmica: λ cai quando viável, sobe quando não", {"bullet": True}),
+    (f"~{fmt(T.sa_it.mean() / 1e6)} milhões de movimentos", {"bullet": True, "negrito": True}),
+    ("Kirkpatrick et al. (1983); Gendreau et al. (1994)", {"tam": 12, "cor": CINZA, "italico": True})]),
+    (Cm(22.6), "SA + Fix-and-Optimize", [
+    ("Metade do tempo: SA", {"bullet": True}),
+    ("Depois: subproblemas do próprio PLI (janela de 7 dias; par de enfermeiros), o resto fixo", {"bullet": True}),
+    ("Em ordem, até nenhum melhorar", {"bullet": True}),
+    (f"~{fmt(T.fo_it.mean())} subproblemas em 300 s", {"bullet": True, "negrito": True}),
+    ("Helber e Sahling (2010)", {"tam": 12, "cor": CINZA, "italico": True})])]
+for x, tit, lin in col:
+    caixa = sl.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, Cm(3.4), Cm(10.2), Cm(13.5))
+    caixa.fill.solid(); caixa.fill.fore_color.rgb = CLARO; caixa.line.color.rgb = AZUL
+    texto(sl, x + Cm(0.4), Cm(3.7), Cm(9.4), Cm(13), [(tit, {"negrito": True, "cor": AZUL, "tam": 21})] + lin, tam=16)
 
-# ------------------------------------------------------------------ 10. SA + F&O
-sl = slide("Simulated Annealing e matheurística Fix-and-Optimize", secao="Metaheurísticas", notas=(
-    "(~1 min 45 s) O Simulated Annealing sorteia um movimento por vez: se melhora, aceita; se piora em delta, aceita "
-    "com probabilidade e elevado a menos delta sobre T. No começo, com T alta, aceita pioras e explora; no fim só "
-    "refina. A temperatura cai de 40 para 2 ao longo dos 5 minutos, calibrada em instâncias fora do conjunto de "
-    "avaliação. A matheurística Fix-and-Optimize usa o próprio modelo de PLI: dividimos as variáveis por decomposições "
-    "fixas, janelas de 7 dias com todos os enfermeiros e pares de enfermeiros parecidos com todos os dias. Cada "
-    "subproblema fixa todo o resto e é resolvido pelo solver. Percorremos todos os subproblemas em ordem e repetimos "
-    "até uma passada inteira não melhorar; aí aumentamos os subproblemas. Diferente de uma LNS, nada é sorteado: a "
-    "busca é sistemática. Começamos da escala do SA, na metade do tempo."))
-texto(sl, Cm(1.5), Cm(3.4), Cm(15.3), Cm(13.5), [
-    ("Simulated Annealing", {"negrito": True, "cor": AZUL, "tam": 22}),
-    ("Sorteia 1 movimento (N1–N4)", {"bullet": True}),
-    ("Melhora → aceita;  piora Δ → aceita com prob. e^(−Δ/T)", {"bullet": True}),
-    ("T cai de 40 → 2 ao longo do tempo: explora → refina", {"bullet": True}),
-    (f"~{fmt(T.sa_it.mean() / 1e6)} milhões de movimentos em 300 s", {"bullet": True, "negrito": True}),
-    ("Kirkpatrick et al. (1983); Ceschia et al. (2020)", {"tam": 13, "cor": CINZA, "italico": True}),
-], tam=18)
-texto(sl, Cm(17.5), Cm(3.4), Cm(15.3), Cm(13.5), [
-    ("Matheurística Fix-and-Optimize", {"negrito": True, "cor": AZUL, "tam": 22}),
-    ("Parte da escala do SA (metade do tempo)", {"bullet": True}),
-    ("Decomposições fixas: janelas de 7 dias; pares de enfermeiros", {"bullet": True}),
-    ("Cada subproblema: fixa o resto, o solver (HiGHS) resolve", {"bullet": True}),
-    ("Passadas em ordem até nenhuma melhorar → subproblemas maiores", {"bullet": True}),
-    ("Helber e Sahling (2010)", {"tam": 13, "cor": CINZA, "italico": True}),
-], tam=18)
-
-# ------------------------------------------------------------------ 11. comparacao
+# ------------------------------------------------------------------ 8. comparacao 300 s
 melhor_metodo = {}
 for i, r in T.iterrows():
     vals = {"Gurobi": r.gurobi, "GRASP": r.grasp_medio, "SA": r.sa_medio, "SA+F&O": r.fo_medio}
     melhor_metodo[i] = min(vals, key=vals.get)
-sl = slide("Comparação: mesmo tempo (300 s), 1 thread", secao="Resultados", notas=(
-    "(~1 min 30 s) Esta é a tabela principal. Custo médio de " + str(int(T.n_sem.min())) + " sementes para as heurísticas, 300 segundos, "
-    "1 thread. Em verde, o melhor de cada linha. " +
-    "; ".join(f"{i}: melhor = {m}" for i, m in melhor_metodo.items()) + ". "
-    "A leitura geral: o Gurobi só compete na menor instância; o GRASP para em ótimos locais ruins; o Simulated "
-    "Annealing chega perto; e o SA seguido do Fix-and-Optimize, que usa o próprio modelo de PLI em pedaços, é o "
-    "melhor em todas as instâncias. Detalhe honesto: as heurísticas rodaram num servidor mais lento que o PC do Gurobi."))
+vit = pd.Series(melhor_metodo).value_counts()
+sl = slide("Comparação com o mesmo tempo: 300 s, 1 thread", secao="Resultados", notas=(
+    f"(~1 min 30 s) Esta é a tabela principal: custo médio de {int(T.n_sem.min())} sementes para as heurísticas, 300 "
+    "segundos para todos. Em verde, o melhor de cada linha. O Gurobi só compete na menor instância. O GRASP para em "
+    "ótimos locais ruins, de 1,6 a 3,5 vezes o ótimo. O SA chega perto. E o SA seguido do Fix-and-Optimize é o "
+    f"melhor em {vit.get('SA+F&O', 0)} de 8, a {fmt(T.dev_fo_medio.mean(), 0)}% do melhor publicado em média: cada "
+    "subproblema reorganiza de uma vez uma semana inteira, o que nenhum movimento simples do SA consegue. No gráfico, "
+    "1 é o ótimo: SA e F&O ficam colados perto dele."))
 linhas = [["Instância", "Gurobi", "GRASP", "SA", "SA+F&O", "Melhor publ."]]
 cols = ["gurobi", "grasp_medio", "sa_medio", "fo_medio"]
 for i, r in T.iterrows():
     linhas.append([i] + [fmt(r[c]) for c in cols] + [fmt(r.ub_lit)])
+linhas.append(["Distância"] + [f"+{fmt(T['dev_' + c].mean(), 0)}%" for c in cols] + [""])
 idx_best = {k + 1: 1 + ["Gurobi", "GRASP", "SA", "SA+F&O"].index(melhor_metodo[i]) for k, i in enumerate(T.index)}
-tabela(sl, Cm(1.5), Cm(3.4), Cm(18.5), linhas, [Cm(3.6), Cm(3.0), Cm(3.0), Cm(3.0), Cm(3.0), Cm(2.9)], tam=15,
-       altura=Cm(0.9), destaque=lambda i, j: idx_best.get(i) == j)
-vit = pd.Series(melhor_metodo).value_counts()
-texto(sl, Cm(21), Cm(3.4), Cm(11.8), Cm(13.5), [
-    ("Melhor método por instância", {"negrito": True, "cor": AZUL}),
-] + [(f"{m}: {n} de 8", {"bullet": True}) for m, n in vit.items()] + [
+tabela(sl, Cm(1.2), Cm(3.4), Cm(16.8), linhas, [Cm(3.2), Cm(2.7), Cm(2.7), Cm(2.6), Cm(2.8), Cm(2.8)], tam=14,
+       altura=Cm(0.86), destaque=lambda i, j: idx_best.get(i) == j or (i == 9 and j == 4))
+imagem(sl, "fig_gap.png", Cm(18.3), Cm(3.6), w=Cm(15))
+texto(sl, Cm(18.6), Cm(12.4), Cm(14.5), Cm(4.5), [
+    (f"SA + F&O: melhor em {vit.get('SA+F&O', 0)} de 8", {"bullet": True, "negrito": True}),
+    ("Gurobi só compete na menor instância", {"bullet": True}),
     (f"Custo médio de {int(T.n_sem.min())} sementes; todas as escalas viáveis", {"tam": 14, "cor": CINZA}),
-    ("Distância média ao melhor publicado:", {"tam": 16, "negrito": True}),
-    (f"Gurobi +{fmt(T.dev_gurobi.mean(), 0)}% · GRASP +{fmt(T.dev_grasp_medio.mean(), 0)}% · "
-     f"SA +{fmt(T.dev_sa_medio.mean(), 0)}% · SA+F&O +{fmt(T.dev_fo_medio.mean(), 0)}%", {"tam": 16}),
-], tam=19)
+], tam=17)
 
-# ------------------------------------------------------------------ 12. graficos
-sl = slide("Distância ao ótimo e convergência", secao="Resultados", notas=(
-    "(~1 min) À esquerda, cada ponto é a razão entre o custo do método e o melhor valor publicado, em escala log: "
-    "1 é o ótimo. O Gurobi (quadrado azul) se afasta muito nas instâncias de 8 semanas, o GRASP fica entre 2 e 4 "
-    "vezes o ótimo, e o SA e o SA + F&O ficam colados perto de 1. À direita, a evolução do melhor custo na n040w8: o "
-    "GRASP estagna cedo; o SA desce até o fim; o SA + F&O faz SA nos primeiros 150 segundos e depois o F&O continua "
-    "descendo em degraus, cada degrau é um subproblema resolvido pelo solver."))
-imagem(sl, "fig_gap.png", Cm(0.8), Cm(3.3), w=Cm(16.2))
-imagem(sl, "fig_convergencia.png", Cm(17.0), Cm(4.0), w=Cm(16.2))
+# ------------------------------------------------------------------ 9. sugestoes e 1 hora
+partes = []
+if TEM_V3:
+    partes.append(f"O GRASP melhorou nas 8 instâncias, de {fmt(T.dev_grasp_v3_medio.mean(), 0)}% para "
+                  f"{fmt(T.dev_grasp_medio.mean(), 0)}%, principalmente pelo desempate. A penalidade dinâmica ajudou na "
+                  "calibração, mas no teste empatou: a diferença ficou dentro da variação entre sementes. E no SA o "
+                  "desempate piorou, porque recusar movimentos de mesmo custo tira diversificação; por isso não o usamos.")
+if TEM_1H:
+    partes.append(f"Com 1 hora, sem mudar nada, o SA + F&O foi para {fmt(T.dev_fo_1h.mean(), 0)}% e o SA para "
+                  f"{fmt(T.dev_sa_1h.mean(), 0)}%. O F&O converge cedo, entre 32 e 40 minutos, num ótimo local das "
+                  "decomposições; por isso, na menor instância, o SA sozinho, que resfria a hora toda, ganhou.")
+sl = slide("Sugestões do professor e mais tempo", secao="Resultados", notas=(
+    "(~1 min 30 s) Testamos as sugestões com calibração em instâncias fora do teste e comparamos com e sem elas na "
+    "mesma máquina. " + " ".join(partes) + " Mostrar o que não funcionou também é resultado."))
+if TEM_V3:
+    tabela(sl, Cm(1.2), Cm(3.4), Cm(16), [["Método", "Sem", "Com", "Melhor em"],
+           ["GRASP (amostral + desempate)", f"+{fmt(T.dev_grasp_v3_medio.mean(), 0)}%", f"+{fmt(T.dev_grasp_medio.mean(), 0)}%",
+            f"{int((T.grasp_medio < T.grasp_v3_medio).sum())} de 8"],
+           ["SA (penalidade dinâmica)", f"+{fmt(T.dev_sa_v3_medio.mean(), 1)}%", f"+{fmt(T.dev_sa_medio.mean(), 1)}%",
+            f"{int((T.sa_medio < T.sa_v3_medio).sum())} de 8"],
+           ["SA + F&O (penalidade dinâmica)", f"+{fmt(T.dev_fo_v3_medio.mean(), 1)}%", f"+{fmt(T.dev_fo_medio.mean(), 1)}%",
+            f"{int((T.fo_medio < T.fo_v3_medio).sum())} de 8"]],
+           [Cm(7.6), Cm(2.6), Cm(2.6), Cm(3.2)], tam=14, altura=Cm(1.0))
+    texto(sl, Cm(1.2), Cm(8.0), Cm(16), Cm(8.5), [
+        ("Distância média ao melhor publicado; mesma máquina, mesmas sementes, 300 s", {"tam": 13, "cor": CINZA}),
+        ("Desempate: ajuda o GRASP; no SA piorou (não usado)", {"bullet": True}),
+        ("Penalidade dinâmica: neutra no teste (dentro do ruído)", {"bullet": True}),
+        ("Testado e não adotado: F&O em ciclos; janelas menores", {"bullet": True, "cor": CINZA}),
+    ], tam=17)
+if TEM_1H:
+    lin = [["Instância", "SA 1 h", "SA+F&O 1 h", "Dist."]]
+    for i, r in T.iterrows():
+        lin.append([i, fmt(r.sa_1h), fmt(r.fo_1h), f"+{fmt(r.dev_fo_1h, 1)}%"])
+    lin.append(["Média", f"+{fmt(T.dev_sa_1h.mean(), 1)}%", f"+{fmt(T.dev_fo_1h.mean(), 1)}%", ""])
+    tabela(sl, Cm(18.6), Cm(3.4), Cm(14.2), lin, [Cm(3.6), Cm(3.4), Cm(3.8), Cm(3.4)], tam=13, altura=Cm(0.8),
+           destaque=lambda i, j: (1 <= i <= 8 and j in (1, 2) and
+                                  (T.iloc[i - 1].sa_1h < T.iloc[i - 1].fo_1h) == (j == 1)))
+    texto(sl, Cm(18.6), Cm(11.8), Cm(14.2), Cm(5), [
+        ("Com 1 hora (mesmos parâmetros, 1 semente)", {"negrito": True, "cor": AZUL, "tam": 16}),
+        ("F&O converge em 32–40 min (ótimo local das decomposições)", {"bullet": True, "tam": 15}),
+    ], tam=16)
 
-# ------------------------------------------------------------------ 13. conclusoes
+# ------------------------------------------------------------------ 10. conclusoes
 sl = slide("Conclusões", secao="Conclusões", notas=(
-    "(~1 min 15 s) Resumindo: o modelo compacto é correto e validado, mas tem relaxação linear fraca, e com 5 "
-    "minutos o Gurobi não resolve as instâncias reais. As metaheurísticas, com avaliação incremental compilada, "
-    "encontram escalas muito melhores no mesmo tempo. O melhor método foi o SA seguido do Fix-and-Optimize, que usa "
-    "o próprio modelo para resolver pedaços pequenos: o modelo exato, ruim sozinho, é ótimo como componente. Ainda "
-    "há distância para o ótimo publicado, que usa branch-and-price e horas de CPU. Próximos passos: mais sementes e "
-    "as 40 instâncias, subproblemas menores para acelerar o F&O, e geração de colunas. Obrigado!"))
-texto(sl, Cm(1.5), Cm(3.4), Cm(31), Cm(14), [
-    ("Modelo compacto de PLI correto (validado contra o avaliador oficial), mas com relaxação linear fraca: em "
-     "300 s o Gurobi não fecha nenhuma instância e se perde nas de 8 semanas", {"bullet": True}),
-    ("Metaheurísticas com avaliação incremental compilada encontram escalas muito melhores no mesmo tempo", {"bullet": True}),
-    (f"SA + Fix-and-Optimize: melhor nas {vit.get('SA+F&O', 0)} de 8 instâncias, a {fmt(T.dev_fo_medio.mean(), 0)}% do "
-     "ótimo publicado em média", {"bullet": True, "negrito": True}),
+    "(~1 min) Resumindo: o modelo compacto é correto, mas tem relaxação linear fraca, e o Gurobi sozinho não resolve "
+    "as instâncias reais. As metaheurísticas, com avaliação incremental, encontram escalas muito melhores no mesmo "
+    "tempo. O melhor método é o SA seguido do Fix-and-Optimize, que usa o próprio modelo em pedaços: o modelo exato, "
+    "ruim sozinho, é ótimo como componente. Com 1 hora chegamos a cerca de 10% do ótimo publicado, que vem de "
+    "branch-and-price com horas de CPU. Obrigado!"))
+fim = [
+    ("Modelo de PLI correto, mas relaxação fraca: em 300 s o Gurobi não fecha nenhuma instância", {"bullet": True}),
+    ("Metaheurísticas com avaliação incremental: escalas muito melhores no mesmo tempo", {"bullet": True}),
+    (f"SA + Fix-and-Optimize: melhor em {vit.get('SA+F&O', 0)} de 8, a {fmt(T.dev_fo_medio.mean(), 0)}% do ótimo "
+     "publicado com 300 s" + (f" e a {fmt(T.dev_fo_1h.mean(), 0)}% com 1 hora" if TEM_1H else ""),
+     {"bullet": True, "negrito": True}),
     ("O modelo exato, ruim sozinho, é valioso como componente (subproblemas do F&O)", {"bullet": True}),
-    ("Ainda há distância ao ótimo publicado (branch-and-price, horas de CPU)", {"bullet": True}),
-    ("Próximos passos: mais sementes e as 40 instâncias; subproblemas menores no F&O; geração de colunas",
+    ("Sugestões testadas: desempate ajuda o GRASP; penalidade dinâmica neutra", {"bullet": True}),
+    ("Próximos passos: mais sementes e as 40 instâncias; decomposições mais variadas; geração de colunas",
      {"bullet": True, "cor": CINZA}),
     ("Obrigado!", {"negrito": True, "cor": AZUL, "tam": 26}),
-], tam=21)
+]
+texto(sl, Cm(1.5), Cm(3.4), Cm(31), Cm(14), fim, tam=21)
 
-# ------------------------------------------------------------------ 14. referencias
-sl = slide("Referências principais", secao="", notas="Slide de apoio para perguntas.")
+# ------------------------------------------------------------------ reserva
+sl = slide("Reserva: convergência (n040w8)", secao="Slides de apoio", notas=(
+    "Slide de apoio. O GRASP estagna cedo; o SA desce até o fim; o SA + F&O faz SA nos primeiros 150 s e depois o "
+    "F&O desce em degraus, cada degrau é um subproblema resolvido pelo solver."))
+imagem(sl, "fig_convergencia.png", Cm(4), Cm(3.4), w=Cm(26))
+
+sl = slide("Reserva: calibração (instâncias fora do teste)", secao="Slides de apoio", notas=(
+    "Slide de apoio. Todos os parâmetros foram escolhidos em 4 instâncias que não estão no conjunto de teste."))
+texto(sl, Cm(1.5), Cm(3.4), Cm(31), Cm(14), [
+    ("SA: T0 ∈ {20, 40, 100} × Tf ∈ {0,5; 2; 5} → T0 = 40, Tf = 2", {"bullet": True}),
+    ("SA: fixa 12,8% · dinâmica 11,9% · dinâmica suave 10,5% (escolhida) · desempate 13,9%", {"bullet": True}),
+    ("GRASP: RCL 110,9% · desempate 98,3% · amostral (p = 3) + desempate 97,6% (escolhida)", {"bullet": True}),
+    ("F&O (20 min): sem ciclos 10.755 × com ciclos 10.830 (soma de 4 instâncias): ciclos não adotados", {"bullet": True}),
+    ("F&O (150 s, n050w8): janelas inteiras 5.265 × divididas 5.280: mantidas inteiras", {"bullet": True}),
+], tam=19)
+
+sl = slide("Referências principais", secao="Slides de apoio", notas="Slide de apoio para perguntas.")
 texto(sl, Cm(1.5), Cm(3.2), Cm(31), Cm(14.5), [
     "Burke, E. K. et al. (2004). The state of the art of nurse rostering. Journal of Scheduling, 7(6):441–499.",
     "Ceschia, S. et al. (2019). The Second International Nurse Rostering Competition. Annals of OR, 274:171–186.",
     "Ceschia, S., Guido, R. e Schaerf, A. (2020). Solving the static INRC-II nurse rostering problem by simulated "
     "annealing based on large neighborhoods. Annals of OR, 288:95–113.",
-    "Cheang, B. et al. (2003). Nurse rostering problems – a bibliographic survey. EJOR, 151(3):447–460.",
     "Feo, T. A. e Resende, M. G. C. (1995). Greedy randomized adaptive search procedures. J. Global Optim., 6:109–133.",
+    "Gendreau, M., Hertz, A. e Laporte, G. (1994). A tabu search heuristic for the vehicle routing problem. "
+    "Management Science, 40(10):1276–1290.",
     "Helber, S. e Sahling, F. (2010). A fix-and-optimize approach for the multi-level capacitated lot sizing problem. "
     "Int. J. Production Economics, 123(2):247–256.",
     "Kirkpatrick, S., Gelatt, C. D. e Vecchi, M. P. (1983). Optimization by simulated annealing. Science, 220:671–680.",
     "Legrain, A. e Omer, J. (2023). A dedicated pricing algorithm to solve a large family of nurse scheduling "
     "problems with branch-and-price. Les Cahiers du GERAD G-2023-02.",
-    "Legrain, A., Omer, J. e Rosat, S. (2020). A rotation-based branch-and-price approach for the nurse scheduling "
-    "problem. Math. Programming Computation, 12:417–450.",
+    "Resende, M. G. C. e Ribeiro, C. C. (2016). Optimization by GRASP. Springer.",
 ], tam=13)
 
 prs.save(SAIDA)

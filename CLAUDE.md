@@ -128,7 +128,7 @@ Heurísticas na nuvem (Xeon 2,3 GHz, mais rápido por núcleo que o servidor da 
 
 Distância média ao melhor publicado: Gurobi +353,8%; GRASP v4 +134,3% (v3: +145,5%, v4 melhor nas 8); SA v4 +22,3% (v3: +21,6%); **SA+F&O v4 +16,1%** (v3: +15,7%), melhor método em 7/8 (n030w4: SA). Conclusão honesta: o desempate (com a construção amostral) melhora o GRASP; a penalidade dinâmica, boa na calibração (12,8% → 10,5%), não se repetiu no teste (diferença dentro do ruído entre sementes); o desempate piora o SA. Etapa 6 refeita com esses números (`entregas/etapa6_comparacao_exato_aproximado.pdf`, 2 páginas).
 
-**Pendente:** (1) o artigo (Etapa 8) e os slides ainda têm TEXTO da v3: as tabelas do artigo já foram atualizadas por `preencher_tabelas.py`, mas o texto não (e o PDF do artigo não foi regenerado); (2) Gurobi de 1 h: rodou no PC em 21/11 (dois terminais, `--push`), mas só chegou ao GitHub o primeiro resultado (n005w4 H0: ótimo 1470 em 73 s). Os demais estão em `nurse_rostering/logs_gurobi/` e `resultados_gurobi_longo*.csv` no PC. Quando chegarem, rodar `analisar_logs_gurobi.py` e `consolidar.py` (já leem esses arquivos) e atualizar a Etapa 5 (e, se der, a linha "Gurobi 1 hora" da Tabela 2 da Etapa 6, que `preencher_tabelas.py` insere sozinha).
+**Atualizado em 22/11/2026:** Etapa 4 (estratégias da v4 e plano com 1 h), Etapa 6, artigo (Etapa 8: resumo, métodos, Tabelas 4 e 5, conclusões; 10 páginas), slides (Etapa 7: 10 slides + 3 de reserva, ~8 min de fala) e guia de estudo, todos com os números v4 e de 1 h. **Pendente:** Gurobi de 1 h: rodou no PC em 21/11 (dois terminais, `--push`), mas só chegou ao GitHub o primeiro resultado (n005w4 H0: ótimo 1470 em 73 s). Os demais estão em `nurse_rostering/logs_gurobi/` e `resultados_gurobi_longo*.csv` no PC. Quando chegarem, rodar `analisar_logs_gurobi.py` e `consolidar.py` (já leem esses arquivos) e atualizar a Etapa 5 (e, se der, a linha "Gurobi 1 hora" da Tabela 2 da Etapa 6, que `preencher_tabelas.py` insere sozinha).
 
 ### 8.0b Com 1 hora (21–22/11/2026; mesmo método e parâmetros da v4, só o tempo muda; 1 semente; nuvem)
 
@@ -206,11 +206,10 @@ Com 120 s, o LNS chegou a 2240 na n021w4.
 
 ## 9. Próximos passos
 
-0. Reunião com o professor (quarta, 18/11/2026): ele pediu mais tempo para o Gurobi provar ótimos e quer discutir representação, vizinhanças, penalidades dinâmicas e empates na função objetivo. Ver a seção "Para a reunião" de `entregas/explicacao_para_estudo.md`.
-1. (Opcional, recomendado) Rodar as heurísticas no PC: `python rodar_experimentos.py --processos 6` (~1 h; apague antes `resultados/v3_*` para refazer). Depois revisar a frase sobre a máquina nas Etapas 6 e 8 e os números citados nos textos.
-2. Pedido do professor: rodar o Gurobi com mais tempo (`rodar_gurobi_longo.py`, no PC) e atualizar a Etapa 5 com os ótimos provados. (Opcional) `rodar_final.run` com `CFG = 'ajustado'`.
-3. Revisar os documentos e os slides e preencher os e-mails no artigo.
-4. Ideias: subproblemas do F&O montados só com as variáveis livres (mais rápido nas instâncias grandes); calibrar o resfriamento do SA com o tempo; mais sementes e as 40 instâncias.
+1. **Gurobi de 1 h (pedido do professor):** os resultados estão no PC (`logs_gurobi/`, `resultados_gurobi_longo*.csv`); enviar ao GitHub (`git add`, `commit`, `pull --rebase`, `push`). Depois: `python analisar_logs_gurobi.py`, `python consolidar.py`, `python ../entregas/fonte/preencher_tabelas.py` (a Tabela 2 da Etapa 6, a Tabela 5 do artigo e o slide 5 ganham o Gurobi 1 h sozinhos) e atualizar o texto da Etapa 5 e uma frase do artigo (Seção 6.2/6.3). Conferir no log se o PC não suspendeu (saltos de tempo).
+2. Preencher os e-mails dos autores no artigo (`[e-mail]`).
+3. Confirmar com o professor se as Etapas 1 a 4 precisam ser reentregues.
+4. Ideias (trabalho futuro, já no artigo): mais sementes e as 40 instâncias; decomposições mais variadas para o F&O (converge cedo); dividir o tempo SA/F&O pelo tamanho da instância; geração de colunas.
 
 **Rotina da v4 (nuvem):** `rodar_experimentos.py --prefixo v4 --pasta resultados --metodos fo+dinS,sa+dinS,grasp+am3+des,fo,sa,grasp --processos 2` (as três últimas = versão 3 na mesma máquina, para a Tabela 3 da Etapa 6). Cuidado: não apagar `_tmp_*.txt` nem usar `git stash -u` com execuções rodando (perde resultados).
 

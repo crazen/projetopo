@@ -1,8 +1,8 @@
 # Nurse Rostering – resumo dos métodos e preparação para a reunião
 
-21/11/2026 · Jorge Dourado (cópia do doc de estudo no claude.ai)
+22/11/2026 · Jorge Dourado (cópia do doc de estudo no claude.ai)
 
-Montamos a escala de 4 ou 8 semanas de 30 a 60 enfermeiros com quatro métodos; o melhor (SA + Fix-and-Optimize) ficou, em média, 17% acima do ótimo publicado, e o Gurobi, 354%.
+Montamos a escala de 4 ou 8 semanas de 30 a 60 enfermeiros com quatro métodos. O melhor (SA + Fix-and-Optimize, versão 4) ficou, em média, 16% acima do ótimo publicado com 5 minutos e 10% com 1 hora; o Gurobi, 354% com 5 minutos.
 
 ## Como estudar este documento
 
@@ -150,25 +150,25 @@ O F&O usa o próprio modelo de PLI do Gurobi, mas em pedaços pequenos que o sol
 
 **Diferença para a LNS:** na LNS o pedaço é sorteado a cada iteração; no F&O os pedaços são fixos e percorridos sistematicamente, e o critério de parada é uma passada sem melhora (Helber e Sahling, 2010).
 
-**Resultado:** 17% acima do ótimo em média, o melhor nas 8 instâncias. Resolveu em média 68 subproblemas (142 na n030w8, só 12 na n060w8, porque cada subproblema é resolvido sobre o modelo inteiro).
+**Resultado:** 16% acima do ótimo em média com 300 s (10% com 1 hora), o melhor em 7 das 8 instâncias. Resolveu em média 77 subproblemas (143 na n030w8, só 15 na n060w8, porque cada janela de 7 dias com 60 enfermeiros leva de 8 a 30 s no solver).
 
 ## Resultados
 
-Custo médio de 3 sementes nas heurísticas, 300 s e 1 thread por execução (menor é melhor). \* = ótimo provado na literatura.
+Custo médio de 3 sementes nas heurísticas (versão 4), 300 s e 1 thread por execução (menor é melhor). \* = ótimo provado na literatura.
 
 | Instância | Melhor publicado | Gurobi | GRASP | SA | SA + F&O |
 | --- | --- | --- | --- | --- | --- |
-| n030w4 | 1.670\* | 1.785 | 2.868 | 1.792 | **1.752** |
-| n040w4 | 1.565\* | 2.435 | 3.340 | 1.830 | **1.740** |
-| n050w4 | 1.315\* | 1.810 | 3.477 | 1.595 | **1.530** |
-| n060w4 | 2.450\* | 8.110 | 5.193 | 2.800 | **2.797** |
-| n030w8 | 2.010\* | 4.580 | 4.885 | 2.298 | **2.180** |
-| n040w8 | 2.515 | 21.655 | 7.132 | 3.322 | **3.193** |
-| n050w8 | 4.810 | 27.065 | 9.585 | 5.538 | **5.352** |
-| n060w8 | 2.150 | 26.830 | 8.187 | 3.383 | **3.122** |
-| Distância média ao melhor publicado |  | +354% | +146% | +22% | **+17%** |
+| n030w4 | 1.670\* | 1.785 | 2.715 | **1.773** | 1.782 |
+| n040w4 | 1.565\* | 2.435 | 3.242 | 1.918 | **1.747** |
+| n050w4 | 1.315\* | 1.810 | 3.428 | 1.633 | **1.545** |
+| n060w4 | 2.450\* | 8.110 | 5.165 | 2.787 | **2.703** |
+| n030w8 | 2.010\* | 4.580 | 4.407 | 2.288 | **2.167** |
+| n040w8 | 2.515 | 21.655 | 6.805 | 3.307 | **3.100** |
+| n050w8 | 4.810 | 27.065 | 9.097 | 5.470 | **5.367** |
+| n060w8 | 2.150 | 26.830 | 7.615 | 3.288 | **3.003** |
+| Distância média ao melhor publicado |  | +354% | +134% | +22% | **+16%** |
 
-O Gurobi rodou no i5-13400; as heurísticas, num servidor mais lento por núcleo (o que não as favorece).
+O Gurobi rodou no i5-13400; as heurísticas, num servidor mais lento por núcleo (o que não as favorece). Com 1 hora e os mesmos parâmetros, o SA + F&O cai para +10% (veja a seção "Com 1 hora", no fim).
 
 ## Por que um método foi melhor que o outro
 
@@ -183,21 +183,21 @@ A ordem foi SA + F&O > SA > GRASP > Gurobi. A diferença entre eles está em com
 
 Resultado: em 300 s o Gurobi só entrega a escala que as heurísticas internas dele acharam enquanto ainda resolvia o primeiro nó. Por isso o resultado é irregular (a n050w4 ficou a 38% e a n060w4, a 231%) e piora muito em 8 semanas, com o dobro de dias e de restrições de sequência. Na menor instância (n030w4) ele chega perto (+7%), porque o modelo é pequeno o bastante para explorar 1.041 nós.
 
-**Por que o GRASP ficou atrás do SA (+146% contra +22%)**
+**Por que o GRASP ficou atrás do SA (+134% contra +22%)**
 
-O GRASP só aceita movimentos que melhoram. Ele para no primeiro ponto em que nenhum movimento de N1 a N4 melhora (ótimo local), e esses pontos custam cerca de 2,5 vezes o ótimo: para melhorar, seria preciso piorar um pouco antes, por exemplo desmontar uma sequência de trabalho para montar outra melhor. Recomeçar com outra construção (209 vezes) só leva a outros ótimos locais parecidos, porque cada repetição começa do zero, sem aproveitar o que aprendeu. O SA aceita piorar com probabilidade controlada por T e, com 250 milhões de movimentos, atravessa esses "vales".
+O GRASP só aceita movimentos que melhoram (com o desempate, também os de mesmo custo que reduzem a gravidade). Ele para no primeiro ponto em que nenhum movimento de N1 a N4 melhora (ótimo local), e esses pontos custam de 1,6 a 3,5 vezes o ótimo: para melhorar, seria preciso piorar um pouco antes, por exemplo desmontar uma sequência de trabalho para montar outra melhor. Recomeçar com outra construção (261 vezes, em média) só leva a outros ótimos locais parecidos, porque cada repetição começa do zero, sem aproveitar o que aprendeu. O SA aceita piorar com probabilidade controlada por T e, com 330 milhões de movimentos, atravessa esses "vales".
 
-Mesmo assim, o GRASP ganha do Gurobi nas quatro maiores instâncias (n060w4, n040w8, n050w8 e n060w8), porque sempre entrega um ótimo local razoável em poucos segundos, enquanto o Gurobi fica preso no primeiro nó.
+Mesmo assim, o GRASP ganha do Gurobi em cinco instâncias (n060w4 e as quatro de 8 semanas), porque sempre entrega um ótimo local razoável em poucos segundos, enquanto o Gurobi fica preso no primeiro nó.
 
-**Por que o SA + F&O ganhou do SA puro (+17% contra +22%)**
+**Por que o SA + F&O ganhou do SA puro (+16% contra +22%)**
 
-Um movimento do SA mexe em no máximo 2 enfermeiros e 7 dias. Algumas melhoras exigem mudar vários enfermeiros ao mesmo tempo, por exemplo redistribuir os turnos de uma semana inteira entre 40 pessoas. O SA teria de acertar essa sequência de movimentos por sorte. O F&O resolve exatamente esse tipo de subproblema: fixa o resto e pede ao solver a melhor reorganização daquela semana, ou de dois enfermeiros, de uma vez. Com o mesmo tempo total, ficou de 2% a 8% abaixo do SA puro em 7 das 8 instâncias. A exceção foi a n060w4, onde empataram. A fase de SA dele também esfria em 150 s em vez de 300 s, e isso ajuda.
+Um movimento do SA mexe em no máximo 2 enfermeiros e 7 dias. Algumas melhoras exigem mudar vários enfermeiros ao mesmo tempo, por exemplo redistribuir os turnos de uma semana inteira entre 40 pessoas. O SA teria de acertar essa sequência de movimentos por sorte. O F&O resolve exatamente esse tipo de subproblema: fixa o resto e pede ao solver a melhor reorganização daquela semana, ou de dois enfermeiros, de uma vez. Com o mesmo tempo total, ficou de 1,9% a 8,9% abaixo do SA puro em 7 das 8 instâncias. A exceção foi a n030w4, a menor, onde o SA ficou ligeiramente abaixo (1.773 × 1.782).
 
-Nas maiores instâncias, o F&O consegue resolver poucos subproblemas (12 na n060w8), porque cada um é resolvido sobre o modelo inteiro; por isso o ganho ali é menor.
+Nas maiores instâncias, o F&O consegue resolver poucos subproblemas em 300 s (15 na n060w8), porque cada janela de 7 dias com 60 enfermeiros leva de 8 a 30 s no solver; por isso o ganho ali é menor. Testamos dividir essas janelas em grupos menores de enfermeiros, e não melhorou.
 
 **Por que ninguém chegou ao ótimo**
 
-Os ótimos publicados vieram de um método exato especializado rodando por horas. Com 5 minutos e 1 núcleo, chegar a 17% em média, e a menos de 4% na n030w4, é razoável. Num teste de 20 minutos, o SA puro parou de melhorar, enquanto o SA + F&O chegou a 7% do ótimo: a parte exata é a que mais aproveita tempo extra.
+Os ótimos publicados vieram de um método exato especializado rodando por horas, com 8 threads. Com 5 minutos e 1 núcleo, chegar a 16% em média é razoável; com 1 hora, o SA + F&O chegou a 10% (de 4,2% na n030w4 a 23,7% na n060w8). O F&O converge entre 32 e 40 min num ótimo local das decomposições, e aí para de melhorar.
 
 ## Três ideias que o professor citou
 
@@ -383,6 +383,31 @@ Para medir o efeito de forma justa, rodamos a versão 3 de novo na **mesma máqu
 - **Melhor método:** continua o SA + F&O, a 16,1% do melhor publicado em média e melhor em 7 das 8 instâncias.
 
 **Como explicar na apresentação:** testamos as três sugestões com calibração fora do conjunto de teste e comparamos na mesma máquina. Uma funcionou (desempate no GRASP), uma ficou neutra (penalidade dinâmica) e uma piorou o SA (desempate no SA). Mostrar o que não funcionou também é resultado.
+
+### Com 1 hora (mesmo método, só mais tempo)
+
+Rodamos o SA + F&O e o SA sozinho com 1 hora por instância, sem mudar nenhum parâmetro (1 semente). No SA + F&O, são 30 min de SA e 30 min de F&O.
+
+| Instância | Melhor publicado | SA + F&O 300 s | SA 1 h | SA + F&O 1 h |
+| --- | --- | --- | --- | --- |
+| n030w4 | 1.670 | 1.782 | **1.720** | 1.740 |
+| n040w4 | 1.565 | 1.747 | 1.735 | **1.725** |
+| n050w4 | 1.315 | 1.545 | 1.515 | **1.465** |
+| n060w4 | 2.450 | 2.703 | 2.680 | **2.580** |
+| n030w8 | 2.010 | 2.167 | 2.150 | **2.115** |
+| n040w8 | 2.515 | 3.100 | 3.155 | **2.880** |
+| n050w8 | 4.810 | 5.367 | 5.345 | **5.150** |
+| n060w8 | 2.150 | 3.003 | 2.945 | **2.660** |
+| **Distância média** |  | 16,1% | 14,9% | **10,2%** |
+
+- **Mais tempo ajuda:** o SA + F&O foi de 16,1% para 10,2% em média e venceu o SA sozinho em 7 de 8.
+- **Por que o F&O para de melhorar:** em 7 das 8 instâncias, a última melhora veio entre 32 e 40 min. O F&O chega a um ótimo local em relação às decomposições: nenhuma janela de dias e nenhum grupo de enfermeiros consegue melhorar sozinho. A exceção é a n060w8, a maior, que ainda melhorava aos 54 min.
+- **Por que o SA sozinho ganhou na n030w4:** no SA + F&O, o SA roda só metade do tempo; o SA sozinho resfria devagar durante a hora inteira. Numa instância pequena, isso vale mais que o F&O.
+- **O que testamos e não adotamos**, nas instâncias de calibração, fora do teste:
+  - janelas do F&O divididas em grupos menores: 5.280 contra 5.265 na n050w8;
+  - ciclos SA → F&O, em que um SA curto reaquecido tira a escala do ótimo local quando o F&O trava: soma de 10.830 contra 10.755 sem ciclos.
+
+**Frase para a apresentação:** "Com 5 minutos, ficamos a 16% do melhor valor publicado; com 1 hora, a 10%. Os valores publicados vêm de um branch-and-price rodado por horas, com 8 threads."
 
 ## Perguntas prováveis e respostas
 
