@@ -130,6 +130,23 @@ Distância média ao melhor publicado: Gurobi +353,8%; GRASP v4 +134,3% (v3: +14
 
 **Pendente:** (1) o artigo (Etapa 8) e os slides ainda têm TEXTO da v3: as tabelas do artigo já foram atualizadas por `preencher_tabelas.py`, mas o texto não (e o PDF do artigo não foi regenerado); (2) Gurobi de 1 h: rodou no PC em 21/11 (dois terminais, `--push`), mas só chegou ao GitHub o primeiro resultado (n005w4 H0: ótimo 1470 em 73 s). Os demais estão em `nurse_rostering/logs_gurobi/` e `resultados_gurobi_longo*.csv` no PC. Quando chegarem, rodar `analisar_logs_gurobi.py` e `consolidar.py` (já leem esses arquivos) e atualizar a Etapa 5 (e, se der, a linha "Gurobi 1 hora" da Tabela 2 da Etapa 6, que `preencher_tabelas.py` insere sozinha).
 
+### 8.0b Com 1 hora (21–22/11/2026; mesmo método e parâmetros da v4, só o tempo muda; 1 semente; nuvem)
+
+`resultados_1h/h1_*` (rodadas de 2 instâncias, `rodada_n0X0.txt`). SA + F&O: 30 min de SA + 30 min de F&O.
+
+| Instância | Melhor publ. | SA+F&O 300 s | SA 1 h | SA+F&O 1 h | últ. melhora F&O |
+|---|---|---|---|---|---|
+| n030w4 | 1670* | 1782 | **1720** | 1740 | 1910 s |
+| n040w4 | 1565* | 1747 | 1735 | **1725** | 2119 s |
+| n050w4 | 1315* | 1545 | 1515 | **1465** | 2399 s |
+| n060w4 | 2450* | 2703 | 2680 | **2580** | 1926 s |
+| n030w8 | 2010* | 2167 | 2150 | **2115** | 2118 s |
+| n040w8 | 2515 | 3100 | 3155 | **2880** | 2296 s |
+| n050w8 | 4810 | 5367 | 5345 | **5150** | 2200 s |
+| n060w8 | 2150 | 3003 | 2945 | **2660** | 3258 s |
+
+Média: SA 1 h +14,9%; **SA+F&O 1 h +10,2%** (4 semanas 7,8%, 8 semanas 12,6%); F&O vence em 7/8. O F&O converge em poucos minutos (ótimo local das decomposições); por isso, na menor instância, o SA sozinho (que resfria a hora toda) ganha. Testados e **não adotados** (calibração, instâncias fora do teste): janelas do F&O divididas em grupos (`max_livres`; n050w8 5280 × 5265) e ciclos SA → F&O (`cic`; soma 10830 × 10755, `calibracao/v4b`). Etapa 6 inclui as linhas de 1 h na Tabela 2.
+
 ### 8.1 Resultados finais v3 (16–17/11/2026, 300 s, 1 thread)
 
 Gurobi: i5-13400 local (`resultados_ampl_final.csv`, CFG padrão). Heurísticas: 3 sementes, servidor Xeon 2,1 GHz com 2 processos (mais lento por núcleo que o i5 — se rodar de novo no PC com `rodar_experimentos.py --processos 6`, trocar a frase sobre a máquina nas Etapas 6 e 8). Arquivos: `comparacao_final.csv`, `resultados/v3_*.csv`, `relaxacao_linear.csv`.

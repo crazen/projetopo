@@ -32,16 +32,18 @@
 <p class="legenda">Tabela 1. Custo das escalas (menor é melhor) e distância ao melhor valor publicado (Legrain e Omer, 2023); * = ótimo provado. Metaheurísticas (versão 4): média e melhor de 3 sementes. Em negrito, o melhor custo médio.</p>
 
 <table class="nw">
-<thead><tr><th class="l">Método</th><th>Tempo</th><th>Até a melhor<br>escala</th><th>Distância<br>média</th><th>Melhor<br>em</th><th class="l">Esforço típico em 300 s</th></tr></thead>
+<thead><tr><th class="l">Método</th><th>Tempo</th><th>Até a melhor<br>escala</th><th>Distância<br>média</th><th>Melhor<br>em</th><th class="l">Esforço típico</th></tr></thead>
 <tbody>
 <!--LINHAS_RESUMO-->
 <tr><td class="l">Exato (Gurobi)</td><td>300 s</td><td>–</td><td>+353,8%</td><td>0 de 8</td><td class="l">branch-and-bound; não provou ótimo em nenhuma</td></tr>
 <tr><td class="l">GRASP</td><td>300 s</td><td>138 s</td><td>+134,3%</td><td>0 de 8</td><td class="l">261 iterações (construção + VND) em média</td></tr>
 <tr><td class="l">Simulated Annealing</td><td>300 s</td><td>290 s</td><td>+22,3%</td><td>1 de 8</td><td class="l">330 milhões de movimentos em média</td></tr>
 <tr><td class="l">SA + Fix-and-Optimize</td><td>300 s</td><td>251 s</td><td>+16,1%</td><td>7 de 8</td><td class="l">77 subproblemas de PLI em média (após o SA)</td></tr>
+<tr><td class="l">Simulated Annealing, 1 hora</td><td>3.600 s</td><td>3.444 s</td><td>+14,9%</td><td>–</td><td class="l">3.080 milhões de movimentos em média; 1 semente</td></tr>
+<tr><td class="l">SA + Fix-and-Optimize, 1 hora</td><td>3.600 s</td><td>2.278 s</td><td>+10,2%</td><td>–</td><td class="l">250 subproblemas em média (após 30 min de SA); 1 semente</td></tr>
 <!--/LINHAS_RESUMO-->
 </tbody></table>
-<p class="legenda">Tabela 2. Resumo por método. Distância média do custo médio ao melhor publicado; tempo até a melhor escala: média das 24 execuções.</p>
+<p class="legenda">Tabela 2. Resumo por método. Distância média do custo médio ao melhor publicado; tempo até a melhor escala: média das execuções (24 com 300 s; 8 com 1 hora).</p>
 
 <table class="nw">
 <thead><tr><th class="l">Método</th><th class="l">Estratégias da versão 4</th><th>Dist. média<br>versão 3</th><th>Dist. média<br>versão 4</th><th>v4 melhor<br>em</th></tr></thead>
@@ -58,7 +60,7 @@
 <!--ANALISE6-->
 <p><b>Qualidade.</b> O SA + F&amp;O teve o melhor custo médio em 7 das 8 instâncias (na n030w4, o SA ficou ligeiramente abaixo: 1.773 contra 1.782), a 16,1% do melhor valor publicado em média, contra 22,3% do SA, 134,3% do GRASP e 353,8% do Gurobi. Suas melhores escalas ficaram a menos de 7% do ótimo na n030w4, n040w4 e n030w8. O Gurobi só foi competitivo na n030w4 (1.785); nas instâncias de 8 semanas, as escalas do SA + F&amp;O custam de 2,1 (n030w8) a 8,9 vezes (n060w8) menos. O F&amp;O supera o SA porque cada subproblema reorganiza de uma vez uma semana de todos os enfermeiros, ou a escala inteira de dois, o que nenhum movimento simples alcança.</p>
 <p><b>Estratégias novas.</b> O GRASP melhorou nas 8 instâncias, de 145,5% para 134,3%. A maior parte do ganho veio do desempate (na calibração, 110,9% → 98,3%; com a construção amostral, 97,6%): aceitando movimentos de mesmo custo que reduzem a gravidade, o VND atravessa platôs em vez de parar no primeiro ótimo local. Já a penalidade dinâmica, que na calibração levou o SA de 12,8% para 10,5%, não se repetiu no teste: 22,3% contra 21,6% no SA e 16,1% contra 15,7% no SA + F&amp;O, diferenças menores que a variação entre sementes (até 4,6%). Atravessar escalas inviáveis ajuda pouco porque as trocas N2 e N4 já movem turnos sem perder cobertura. No SA, o desempate piorou na calibração (13,9% contra 12,8%), pois recusar movimentos de mesmo custo tira diversificação; por isso não foi usado.</p>
-<p><b>Tempo.</b> O SA e o SA + F&amp;O acham a melhor escala aos 290 s e 251 s em média (ainda melhoram no fim); o GRASP estagna por volta dos 138 s. Os 16% de distância são o preço de 5 minutos em 1 núcleo: os valores publicados vêm de um <i>branch-and-price</i> executado por horas (Legrain e Omer, 2023). Conclusão: o modelo exato sozinho só serve para instâncias pequenas; como subproblema dentro do F&amp;O, produz as melhores escalas.</p>
+<p><b>Tempo.</b> O SA e o SA + F&amp;O acham a melhor escala aos 290 s e 251 s em média (ainda melhoram no fim); o GRASP estagna por volta dos 138 s. Com <b>1 hora</b> (mesmo método e parâmetros, 1 semente; Tabela 2), o SA + F&amp;O caiu para 10,2% em média (de 4,2% na n030w4 a 23,7% na n060w8) e o SA sozinho para 14,9%; o F&amp;O venceu em 7 de 8. Na n030w4, o SA sozinho ganhou (1.720 × 1.740): o F&amp;O converge em poucos minutos para um ótimo local das decomposições e para de melhorar (última melhora entre 32 e 40 min em 7 das 8), enquanto o SA usa a hora inteira resfriando. Os valores publicados vêm de um <i>branch-and-price</i> executado por horas (Legrain e Omer, 2023). Conclusão: o modelo exato sozinho só serve para instâncias pequenas; como subproblema dentro do F&amp;O, produz as melhores escalas.</p>
 <!--/ANALISE6-->
 
 <h2>Referências</h2>

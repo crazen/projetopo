@@ -86,6 +86,12 @@ if TEM_1H:
     linhas.insert(1, f'<tr><td class="l">Exato (Gurobi), 1 hora</td><td>3.600 s</td><td>–</td>'
                      f'<td>{pct(T.dev_gurobi_1h.mean())}</td><td>–</td><td class="l">mesmo método com 12 vezes mais '
                      f'tempo; provou ótimo em {n_ot} de 8</td></tr>')
+# mesmo metodo com 1 hora (1 semente), quando ja houver resultados
+for m, desc in [("sa", lambda: f"{f(T.sa_1h_it.mean() / 1e6, 0)} milhões de movimentos em média"),
+                ("fo", lambda: f"{f(T.fo_1h_it.mean(), 0)} subproblemas em média (após 30 min de SA)")]:
+    if f"{m}_1h" in T and T[f"{m}_1h"].notna().all():
+        linhas.append(f'<tr><td class="l">{nomes[m]}, 1 hora</td><td>3.600 s</td><td>{f(T[m + "_1h_tmelhor"].mean())} s</td>'
+                      f'<td>{pct(T[f"dev_{m}_1h"].mean())}</td><td>–</td><td class="l">{desc()}; 1 semente</td></tr>')
 inserir("etapa6_comparacao_exato_aproximado.html", "LINHAS_RESUMO", "\n".join(linhas))
 
 # efeito das estrategias novas (versao 3 x versao 4, mesma maquina, mesmas sementes)
